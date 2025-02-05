@@ -1,0 +1,8 @@
+<integrations>
+    <integration name="Armanet_Integration">
+        <resources>
+            <resource name="Magento_Backend::store"/>
+            <resource name="Magento_Backend::all" />
+        </resources>
+    </integration>
+</integrations>

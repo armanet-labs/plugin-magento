@@ -1,0 +1,31 @@
+<?php
+  /** @var \Armanet\Integration\Block\CheckoutSuccess\Index $block */
+  $order = $block->getOrder();
+?>
+
+<script type="text/javascript">
+  require(['jquery', 'checkout_success'], function($, checkoutSuccess) {
+    $(document).ready(function() {
+      var orderNumber = '<?= $block->escapeJs($block->getOrderId()) ?>';
+      var orderTotal = '<?= $block->escapeJs($block->getOrderTotal()) ?>';
+      var items = [
+        <?php foreach ($block->getItems() as $index => $item): ?>
+            {
+            itemId: '<?= $block->escapeJs($item->getItemId()) ?>',
+            upc: '<?= $block->escapeJs($item->getSku()) ?>',
+            price: '<?= $block->escapeJs($item->getPrice()) ?>',
+            quantity: '<?= $block->escapeJs($item->getQtyOrdered()) ?>',
+            }<?= $index < count($block->getItems()) - 1 ? ',' : '' ?>
+        <?php endforeach; ?>
+      ];
+
+      var final = {
+        orderNumber: orderNumber,
+        orderTotal: orderTotal,
+        items: items,
+      };
+
+      checkoutSuccess(final);
+    });
+  });
+</script>

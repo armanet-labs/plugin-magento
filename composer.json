@@ -1,0 +1,35 @@
+{
+    "name": "armanet/magento-integration",
+    "description": "Armanet Magento Integration",
+    "type": "magento2-module",
+    "version": "0.1",
+    "license": "BSD-3-Clause",
+    "require": {
+      "php": ">=7.0",
+      "magento/module-store": "*",
+      "magento/module-theme": "*",
+      "magento/module-widget": "*",
+      "magento/module-backend": "*",
+      "magento/module-catalog": "*",
+      "magento/module-email": "*",
+      "magento/module-ui": "*",
+      "magento/module-variable": "*",
+      "magento/module-media-storage": "*",
+      "magento/framework": "*",
+      "magento/magento-composer-installer": "*"
+    },
+    "extra": {
+        "map": [
+            [
+                "*",
+                "Armanet/Integration"
+            ]
+        ]
+    },
+    "autoload": {
+        "files": [ "registration.php" ],
+        "psr-4": {
+            "Armanet\\Integration\\": ""
+        }
+   }
+}

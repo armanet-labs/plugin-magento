@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Magento/Backend/etc/menu.xsd">
+    <menu>
+        <add id="Armanet_Integration::parent"
+             title="Armanet"
+             module="Armanet_Integration"
+             sortOrder="100"
+             action="armanet/integration/index"
+             resource="Armanet_Integration::index"
+            parent="Magento_Integration::system_integrations"
+        />
+    </menu>
+</config>

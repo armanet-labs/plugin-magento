@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../../lib/internal/Magento/Framework/View/Layout/etc/page_configuration.xsd">
+	<head>
+    <title>Armanet Integration</title>
+    <script src="https://cdn.tailwindcss.com" src_type="url"></script>
+
+  </head>
+	<body>
+		<referenceContainer name="before.body.end">
+        <block class="Magento\Framework\View\Element\Text" name="custom_inline_js">
+            <arguments>
+                <argument name="text" xsi:type="string">
+                    <![CDATA[
+											<script>
+							tailwind.config = {
+									darkMode: 'class',
+									theme: {
+										extend: {
+											colors: {
+												primary: {'50': '#f2f8fd','100': '#e4eefa','200': '#c3ddf4','300': '#8ec2eb','400': '#51a2df','500': '#328ed4','600': '#1c6aad','700': '#18558c','800': '#184974','900': '#193e61','950': '#112740'}
+											}
+										},
+										fontFamily: {
+											'body': [
+												'Inter',
+												'ui-sans-serif',
+												'system-ui',
+												'-apple-system',
+												'system-ui',
+												'Segoe UI',
+												'Roboto',
+												'Helvetica Neue',
+												'Arial',
+												'Noto Sans',
+												'sans-serif',
+												'Apple Color Emoji',
+												'Segoe UI Emoji',
+												'Segoe UI Symbol',
+												'Noto Color Emoji'
+											],
+											'sans': [
+												'Inter',
+												'ui-sans-serif',
+												'system-ui',
+												'-apple-system',
+												'system-ui',
+												'Segoe UI',
+												'Roboto',
+												'Helvetica Neue',
+												'Arial',
+												'Noto Sans',
+												'sans-serif',
+												'Apple Color Emoji',
+												'Segoe UI Emoji',
+												'Segoe UI Symbol',
+												'Noto Color Emoji'
+											],
+										}
+									}
+								}
+						</script>
+                    ]]>
+                </argument>
+            </arguments>
+        </block>
+    </referenceContainer>
+
+
+		<referenceContainer name="content">
+			<block
+				class="Armanet\Integration\Block\Adminhtml\Index"
+				name="integration_index"
+				template="Armanet_Integration::integration_index.phtml"
+			/>
+		</referenceContainer>
+	</body>
+</page>

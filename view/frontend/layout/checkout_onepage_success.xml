@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <script src="https://assets.armanet.us/armanet-pxl.js" src_type="url" defer="true"/>
+    </head>
+    <body>
+        <referenceContainer name="order.success.additional.info">
+            <block class="Armanet\Integration\Block\CheckoutSuccess\Index"
+                   name="armanet.checkout_success"
+                   template="Armanet_Integration::checkout-success.phtml"/>
+        </referenceContainer>
+    </body>
+</page>
