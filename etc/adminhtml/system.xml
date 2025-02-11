@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+  <system>
+    <section id="armanet" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+      <label>Armanet Integration</label>
+      <tab>general</tab>
+      <resource>Armanet_Integration::config</resource>
+
+      <group id="settings" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+        <label>Armanet Integration</label>
+
+        <field id="api_key" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+          <label>Armanet API Key</label>
+          <comment>Enter your Armanet API key here. You can find this in your Armanet dashboard.</comment>
+        </field>
+
+        <field id="enable_tracking" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Enable Conversion Tracking</label>
+            <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+            <comment>Enable this to track conversions from your Magento store in Armanet.</comment>
+        </field>
+
+        <field id="enable_feed" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Enable Feed</label>
+            <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+            <comment>Enable product feed generation for Armanet integration.</comment>
+        </field>
+      </group>
+    </section>
+  </system>
+</config>

@@ -1,10 +1,15 @@
 <?php
 /** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
 
-// $scriptContent = "
-//     require(['armanet_cart_listener'], function(cartListener) {
-//         cartListener();
-//     });
-// ";
+$helper = $this->helper(\Armanet\Integration\Helper\Data::class);
+$isTrackingEnabled = $helper->isTrackingEnabled();
 
-// echo $secureRenderer->renderTag('script', [], $scriptContent, false);
+if ($isTrackingEnabled) {
+    $scriptContent = "
+        require(['armanet_cart_listener'], function(cartListener) {
+            cartListener();
+        });
+    ";
+
+    echo $secureRenderer->renderTag('script', [], $scriptContent, false);
+}

@@ -2,6 +2,7 @@
 
 namespace Armanet\Integration\Controller\ProductFeedCSV;
 
+use Armanet\Integration\Helper\Data;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
@@ -15,23 +16,33 @@ class Index extends Action
     protected $productCollectionFactory;
     protected $productRepository;
     protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
+    protected $configHelper;
 
     public function __construct(
         Context $context,
         RawFactory $resultRawFactory,
         CollectionFactory $productCollectionFactory,
         ProductRepositoryInterface $productRepository,
+        Data $configHelper,
     ) {
         parent::__construct($context);
         $this->resultRawFactory = $resultRawFactory;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->productRepository = $productRepository;
+        $this->configHelper = $configHelper;
     }
 
     public function execute()
     {
         $request = $this->getRequest();
         $resultRaw = $this->resultRawFactory->create();
+        $isFeedEnabled = $this->configHelper->isFeedEnabled();
+
+        if (!$isFeedEnabled) {
+            $resultRaw->setHttpResponseCode(404);
+
+            return $resultRaw;
+        }
 
         // Validate request
         $feedSign = $request->getHeader('X-FeedSign');
