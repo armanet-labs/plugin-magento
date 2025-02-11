@@ -11,12 +11,11 @@ class Data extends AbstractHelper
     const CONFIG_PATH_ENABLE_TRACKING = 'armanet/settings/enable_tracking';
     const CONFIG_PATH_ENABLE_FEED = 'armanet/settings/enable_feed';
 
-    public function getApiKey($storeId = null)
+    public function getApiKey()
     {
         return $this->scopeConfig->getValue(
            self::CONFIG_PATH_API_KEY,
            ScopeInterface::SCOPE_STORE,
-           $storeId
        );
     }
 

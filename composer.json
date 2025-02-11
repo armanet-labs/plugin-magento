@@ -18,14 +18,6 @@
       "magento/framework": "*",
       "magento/magento-composer-installer": "*"
     },
-    "extra": {
-        "map": [
-            [
-                "*",
-                "Armanet/Integration"
-            ]
-        ]
-    },
     "autoload": {
         "files": [ "registration.php" ],
         "psr-4": {
