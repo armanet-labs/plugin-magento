@@ -9,7 +9,7 @@ define('armanet_cart_listener', [
       if (data && data.productIds) {
         var cart = customerData.get('cart')();
 
-        if (cart && cart.items.length) {
+        if (cart && cart.items && cart.items.length) {
           var addedItem = cart.items.find(item => item.product_id == data.productIds[0]);
 
           if (addedItem) {

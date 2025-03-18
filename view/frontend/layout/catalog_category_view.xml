@@ -8,5 +8,5 @@
         name="armanet.cart.listener"
         template="Armanet_Integration::cart-listener.phtml"/>
     </referenceContainer>
-    </body>
+  </body>
 </page>
