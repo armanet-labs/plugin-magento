@@ -53,46 +53,65 @@ class Index extends Action
             return $resultRaw;
         }
 
-        $offset = (int) $request->getParam('offset', 0);
-        $pageSize = 300;
-
-        $page = ($offset / $pageSize) + 1;
-
-        $collection = $this->productCollectionFactory->create()
-            ->addAttributeToSelect(['name', 'price', 'sku', 'image', "entity_id",])
-            ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
-            ->setPageSize($pageSize)
-            ->setCurPage($page);
-
-        $csvContent = [];
-        $csvContent[] = ['id', 'title', 'link', 'image_link', 'price'];
-
-        foreach ($collection as $product) {
-            $csvContent[] = [
-                $product->getId(),
-                $product->getName(),
-                $product->getProductUrl(),
-                $product->getMediaConfig()->getMediaUrl($product->getImage()),
-                $product->getPrice()
-            ];
-        }
-
-        $outputBuffer = fopen('php://temp', 'w');
-
-        foreach ($csvContent as $row) {
-            fputcsv($outputBuffer, $row);
-        }
-
-        rewind($outputBuffer);
-
-        $csvData = stream_get_contents($outputBuffer);
-
-        fclose($outputBuffer);
-
-        $resultRaw->setContents($csvData);
         $resultRaw->setHeader('Content-Type', 'text/csv', true);
         $resultRaw->setHeader('Content-Disposition', 'attachment; filename="product_feed.csv"', true);
 
+        // Start output buffering to capture CSV data
+        ob_start();
+
+        // Open a stream to write CSV content to the output buffer
+        $output = fopen('php://output', 'w');
+        if (!$output) {
+            return $resultRaw;
+        }
+
+        fputcsv($output, ['id', 'title', 'link', 'image_link', 'price']);
+        fflush($output);
+
+        $pageSize = 10000;
+        $currentPage = 1;
+
+        while (true) {
+            $collection = $this->productCollectionFactory->create()
+                ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id'])
+                ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
+                ->setPageSize($pageSize)
+                ->setCurPage($currentPage);
+
+            // Exit the loop if there are no products in the current page
+            if ($collection->getSize() == 0) {
+                break;
+            }
+
+            foreach ($collection as $product) {
+                $row = [
+                    $product->getId(),
+                    $product->getName(),
+                    $product->getProductUrl(),
+                    $product->getMediaConfig()->getMediaUrl($product->getImage()),
+                    $product->getPrice()
+                ];
+                fputcsv($output, $row);
+            }
+
+            // Flush the output to send data progressively
+            fflush($output);
+
+            // If this is the last page (fewer products than pageSize), break the loop
+            if ($collection->count() < $pageSize) {
+                break;
+            }
+
+            $currentPage++;
+            // Clear the current collection to free memory
+            $collection->clear();
+        }
+
+        fclose($output);
+
+        // Capture the entire CSV content from the output buffer
+        $csvContent = ob_get_clean();
+        $resultRaw->setContents($csvContent);
         return $resultRaw;
     }
 }
