@@ -2,7 +2,7 @@
     "name": "armanet/magento-integration",
     "description": "Armanet Magento Integration",
     "type": "magento2-module",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "license": "BSD-3-Clause",
     "require": {
       "php": ">=7.0",
