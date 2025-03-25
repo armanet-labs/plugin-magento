@@ -56,9 +56,6 @@ class Index extends Action
         $resultRaw->setHeader('Content-Type', 'text/csv', true);
         $resultRaw->setHeader('Content-Disposition', 'attachment; filename="product_feed.csv"', true);
 
-        // Start output buffering to capture CSV data
-        ob_start();
-
         // Open a stream to write CSV content to the output buffer
         $output = fopen('php://output', 'w');
         if (!$output) {
@@ -110,10 +107,6 @@ class Index extends Action
         // Close the output stream
         fclose($output);
 
-        // Capture the entire CSV content from the output buffer
-        $csvContent = ob_get_clean();
-        // Set the CSV content as the body of the response
-        $resultRaw->setContents($csvContent);
         return $resultRaw;
     }
 }
