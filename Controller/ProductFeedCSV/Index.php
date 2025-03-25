@@ -39,22 +39,27 @@ class Index extends Action
 
         // Create a Raw response object for CSV output
         $resultRaw = $this->resultRawFactory->create();
+        $apiKey = $this->configHelper->getApiKey();
 
-        if (!$this->configHelper->isFeedEnabled()) {
+        if (!$apiKey || !$this->configHelper->isFeedEnabled()) {
             $resultRaw->setHttpResponseCode(404);
+
             return $resultRaw;
         }
+
+        $timestamp = date('YmdHi', time());
+        $apiKey = $this->configHelper->getApiKey();
+        $expectedSig = hash_hmac('sha256', $timestamp, $apiKey);
 
         $feedSign = $request->getHeader('X-FeedSign');
         $userAgent = $request->getHeader('User-Agent');
-        if ($feedSign !== '1' || $userAgent !== self::UA) {
+        if ($feedSign !== $expectedSig || $userAgent !== self::UA) {
             $resultRaw->setHttpResponseCode(404);
             return $resultRaw;
         }
 
-        // Set headers to force a CSV file download in the browser
+        // Set headers for the response
         $resultRaw->setHeader('Content-Type', 'text/csv', true);
-        $resultRaw->setHeader('Content-Disposition', 'attachment; filename="product_feed.csv"', true);
 
         // Open a stream to write CSV content to the output buffer
         $output = fopen('php://output', 'w');
