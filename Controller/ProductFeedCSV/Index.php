@@ -75,7 +75,6 @@ class Index extends Action
             $collection = $this->productCollectionFactory->create()
                 ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id'])
                 ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
-                ->addAttributeToFilter('price', ['gt' => 300])
                 ->setPageSize(self::PAGE_SIZE)
                 ->setCurPage($currentPage);
 
