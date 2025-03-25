@@ -8,8 +8,6 @@ use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
-use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\App\Response\Http\FileFactory;
 use Magento\Framework\Controller\Result\RawFactory;
 
 class Index extends Action
@@ -18,94 +16,66 @@ class Index extends Action
     protected $productCollectionFactory;
     protected $productRepository;
     protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
-    protected const CACHE_FEED_EXPIRATION_HOURS = 1;
-    protected const CACHE_FEED_FOLDER = 'tmp';
     protected const PAGE_SIZE = 10000;
     protected $configHelper;
-    protected $fileFactory;
 
     public function __construct(
         Context $context,
         RawFactory $resultRawFactory,
         CollectionFactory $productCollectionFactory,
         ProductRepositoryInterface $productRepository,
-        Data $configHelper,
-        FileFactory $fileFactory
+        Data $configHelper
     ) {
         parent::__construct($context);
         $this->resultRawFactory = $resultRawFactory;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->productRepository = $productRepository;
         $this->configHelper = $configHelper;
-        $this->fileFactory = $fileFactory;
     }
 
     public function execute()
     {
         $request = $this->getRequest();
 
-        if (!$this->configHelper->isFeedEnabled()) {
-            $resultRaw = $this->resultRawFactory->create();
-            $resultRaw->setHttpResponseCode(404);
+        // Create a Raw response object for CSV output
+        $resultRaw = $this->resultRawFactory->create();
 
+        if (!$this->configHelper->isFeedEnabled()) {
+            $resultRaw->setHttpResponseCode(404);
             return $resultRaw;
         }
 
-        // Validate request
         $feedSign = $request->getHeader('X-FeedSign');
         $userAgent = $request->getHeader('User-Agent');
         if ($feedSign !== '1' || $userAgent !== self::UA) {
-            $resultRaw = $this->resultRawFactory->create();
             $resultRaw->setHttpResponseCode(404);
-
             return $resultRaw;
         }
 
-        $fileName = 'product_feed.csv';
+        // Set headers to force a CSV file download in the browser
+        $resultRaw->setHeader('Content-Type', 'text/csv', true);
+        $resultRaw->setHeader('Content-Disposition', 'attachment; filename="product_feed.csv"', true);
 
-        $varDir = $this->_objectManager->get(DirectoryList::class)->getPath(DirectoryList::VAR_DIR);
-        $tmpDir = sprintf('%s/%s', $varDir, self::CACHE_FEED_FOLDER);
-        if (!is_dir($tmpDir)) {
-            mkdir($tmpDir, 0777, true);
-        }
+        // Start output buffering to capture CSV data
+        ob_start();
 
-        $cacheFile = sprintf('%s/%s', $tmpDir, $fileName);
-
-        // Check if cached file exists and is fresh (1 hours)
-        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < (self::CACHE_FEED_EXPIRATION_HOURS * 3600)) {
-            // Return cached file using FileFactory
-            return $this->fileFactory->create(
-                $fileName,
-                [
-                    'type' => 'filename',
-                    'value' => sprintf('%s/%s', self::CACHE_FEED_FOLDER, $fileName),
-                    'rm' => false
-                ],
-                DirectoryList::VAR_DIR,
-                'text/csv'
-            );
-        }
-
-        $output = fopen($cacheFile, 'w');
-
+        // Open a stream to write CSV content to the output buffer
+        $output = fopen('php://output', 'w');
         if (!$output) {
-            $resultRaw = $this->resultRawFactory->create();
-            $resultRaw->setContents('Error opening temporary file stream');
-
             return $resultRaw;
         }
 
-        // Write CSV header row
         fputcsv($output, ['id', 'title', 'link', 'image_link', 'price']);
         fflush($output);
 
         $currentPage = 1;
 
+        // Process products in pages to avoid memory issues
         while (true) {
             $collection = $this->productCollectionFactory->create()
                 ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id'])
                 ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
-                ->addAttributeToFilter('price', ['gt' => 500])
+                ->addAttributeToFilter('price', ['gt' => 300])
                 ->setPageSize(self::PAGE_SIZE)
                 ->setCurPage($currentPage);
 
@@ -133,22 +103,18 @@ class Index extends Action
                 break;
             }
 
+            // Move to the next page and clear the current collection to free memory
             $currentPage++;
             $collection->clear();
         }
 
+        // Close the output stream
         fclose($output);
 
-        // Return the file as a streamed response using FileFactory
-        return $this->fileFactory->create(
-            $fileName,
-            [
-                'type' => 'filename',
-                'value' => sprintf('%s/%s', self::CACHE_FEED_FOLDER, $fileName),
-                'rm' => false,
-            ],
-            DirectoryList::VAR_DIR,
-            'text/csv'
-        );
+        // Capture the entire CSV content from the output buffer
+        $csvContent = ob_get_clean();
+        // Set the CSV content as the body of the response
+        $resultRaw->setContents($csvContent);
+        return $resultRaw;
     }
 }
