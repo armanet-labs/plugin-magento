@@ -1,6 +1,6 @@
 <?php
 
-namespace Armanet\Integration\Controller\ProductFeedCSV;
+namespace Armanet\Integration\Controller\ProductFeed;
 
 use Armanet\Integration\Helper\Data;
 use Magento\Catalog\Api\ProductRepositoryInterface;
@@ -16,7 +16,7 @@ class Index extends Action
     protected $productCollectionFactory;
     protected $productRepository;
     protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
-    protected const PAGE_SIZE = 10000;
+    protected const MAX_PAGE_SIZE = 10000;
     protected $configHelper;
 
     public function __construct(
@@ -58,59 +58,46 @@ class Index extends Action
             return $resultRaw;
         }
 
-        // Set headers for the response
-        $resultRaw->setHeader('Content-Type', 'text/csv', true);
-
-        // Open a stream to write CSV content to the output buffer
-        $output = fopen('php://output', 'w');
-        if (!$output) {
-            return $resultRaw;
-        }
-
-        fputcsv($output, ['id', 'title', 'link', 'image_link', 'price']);
-        fflush($output);
-
-        $currentPage = 1;
+        $currentPage = $request->getParam('p', 1);
+        $pageSize = $request->getParam('s', self::MAX_PAGE_SIZE);
+        $pageSize = min($pageSize, self::MAX_PAGE_SIZE);
 
         // Process products in pages to avoid memory issues
-        while (true) {
-            $collection = $this->productCollectionFactory->create()
-                ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id'])
-                ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
-                ->setPageSize(self::PAGE_SIZE)
-                ->setCurPage($currentPage);
+        $collection = $this->productCollectionFactory->create()
+            ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id'])
+            ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
+            ->setPageSize($pageSize)
+            ->setCurPage($currentPage);
 
-            // Exit the loop if there are no products in the current page
-            if ($collection->getSize() == 0) {
-                break;
-            }
+        // Create pager metadata
+        $pager = [
+            'total' => $collection->getSize(),
+            'page' => $currentPage,
+            'next_page' => $currentPage + 1,
+            'page_size' => $pageSize,
+        ];
 
-            foreach ($collection as $product) {
-                $row = [
-                    $product->getId(),
-                    $product->getName(),
-                    $product->getProductUrl(),
-                    $product->getMediaConfig()->getMediaUrl($product->getImage()),
-                    $product->getPrice()
-                ];
-                fputcsv($output, $row);
-            }
-
-            // Flush the output to send data progressively
-            fflush($output);
-
-            // If this is the last page (fewer products than pageSize), break the loop
-            if ($collection->count() < self::PAGE_SIZE) {
-                break;
-            }
-
-            // Move to the next page and clear the current collection to free memory
-            $currentPage++;
-            $collection->clear();
+        // If we have less results than the page size, means last page
+        if ($collection->count() < $pageSize) {
+            $pager['next_page'] = 0;
         }
 
-        // Close the output stream
-        fclose($output);
+        $rows = [];
+        foreach ($collection as $product) {
+            $rows[] = [
+                'id' => $product->getId(),
+                'title' => $product->getName(),
+                'link' => $product->getProductUrl(),
+                'image_link' => $product->getMediaConfig()->getMediaUrl($product->getImage()),
+                'price' => $product->getPrice(),
+            ];
+        }
+
+        // Build response with pager metadata
+        $resultRaw->setContents(json_encode([
+            'data' => $rows,
+            'meta' => $pager,
+        ]));
 
         return $resultRaw;
     }
