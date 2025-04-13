@@ -48,8 +48,7 @@ class IndexTest extends TestCase
         $reflection = new \ReflectionClass(Index::class);
         $this->constUA = $reflection->getConstant('UA');
         $this->constMaxPageSize = $reflection->getConstant('MAX_PAGE_SIZE');
-
-
+        
         $this->resultRawFactoryMock = $this->createMock(RawFactory::class);
         $this->collectionFactoryMock = $this->createMock(CollectionFactory::class);
         $this->productRepositoryMock = $this->createMock(ProductRepositoryInterface::class);
@@ -78,6 +77,9 @@ class IndexTest extends TestCase
         $prop->setAccessible(true);
     }
 
+    /**
+     * Test feed execution when configuration is disabled
+     */
     public function testIsExecutingWithFeedConfigurationDisabled()
     {
         $this->configHelperMock->method('isFeedEnabled')->willReturn(false);
@@ -87,7 +89,10 @@ class IndexTest extends TestCase
         $this->assertSame($this->rawResultMock, $result);
     }
 
-    public function testIsExecutingWithInvalidHeaders()
+    /**
+     * Test feed execution with invalid signature in headers
+     */
+    public function testIsExecutingWithInvalidSignature()
     {
         $apiKey = 'abc';
 
@@ -96,7 +101,6 @@ class IndexTest extends TestCase
 
         $timestamp = date('YmdHi', time());
         $expectedSig = hash_hmac('sha256', $timestamp, $apiKey);
-        var_dump("generado expectedsign en test: ", $expectedSig);
 
         $this->requestMock->expects($this->any())
         ->method('getHeader')
@@ -114,8 +118,41 @@ class IndexTest extends TestCase
         $result = $this->controller->execute();
         $this->assertSame($this->rawResultMock, $result);
     }
+    
+    /**
+     * Test feed execution with invalid User-Agent header
+     */
+    public function testIsExecutingWithInvalidUserAgent()
+    {
+        $apiKey = 'abc';
 
-    public function testIsExecutingWhitoutProducts()
+        $this->configHelperMock->method('isFeedEnabled')->willReturn(true);
+        $this->configHelperMock->method('getApiKey')->willReturn($apiKey);
+
+        $timestamp = date('YmdHi', time());
+        $expectedSig = hash_hmac('sha256', $timestamp, $apiKey);
+
+        $this->requestMock->expects($this->any())
+        ->method('getHeader')
+        ->willReturnCallback(function($headerName) use ($expectedSig) {
+            if ($headerName === 'X-FeedSign') {
+                return $expectedSig;
+            } elseif ($headerName === 'User-Agent') {
+                return 'Invalid User Agent';
+            }
+            return null;
+        });
+
+        $this->rawResultMock->expects($this->once())->method('setHttpResponseCode')->with(404);
+
+        $result = $this->controller->execute();
+        $this->assertSame($this->rawResultMock, $result);
+    }
+
+    /**
+     * Test feed execution with empty product collection
+     */
+    public function testIsExecutingWithoutProducts()
     {
         $apiKey = 'abc';
 
@@ -177,6 +214,9 @@ class IndexTest extends TestCase
         $this->assertSame($this->rawResultMock, $result);
     }
 
+    /**
+     * Test feed with a single product and default pagination
+     */
     public function testIsExecutingWithProductsAndDefaultPagination()
     {
         $apiKey = 'abc';
@@ -250,6 +290,9 @@ class IndexTest extends TestCase
         $this->assertSame($this->rawResultMock, $result);
     }
 
+    /**
+     * Test feed with multiple products and custom pagination (page 2)
+     */
     public function testIsExecutingWithProductsAndCustomPagination()
     {
         $apiKey = 'abc';
@@ -302,43 +345,19 @@ class IndexTest extends TestCase
         $collectionMock->method('addAttributeToFilter')->willReturnSelf();
         $collectionMock->method('setPageSize')->willReturnSelf();
         $collectionMock->method('setCurPage')->willReturnSelf();
-
-        $collectionMock->setPageSize(3);
-        $collectionMock->setCurPage(1);
-
+        
         $collectionMock->method('getPageSize')->willReturn($pageSize);
         $collectionMock->method('getSize')->willReturn(10);
         $collectionMock->method('count')->willReturn(7);
         $collectionMock->method('clear')->willReturn(null);
 
-        $collectionMock->addItem($product1);
-        $collectionMock->addItem($product2);
-        $collectionMock->addItem($product3);
-        $collectionMock->addItem($product4);
-        $collectionMock->addItem($product5);
-        $collectionMock->addItem($product6);
-        $collectionMock->addItem($product7);
-        $collectionMock->addItem($product8);
-        $collectionMock->addItem($product9);
-        $collectionMock->addItem($product10);
-
         $collectionMock->method('getIterator')->willReturn(new \ArrayIterator([
-            // $product1,
-            // $product2,
-            // $product3,
             $product4,
             $product5,
-            $product6,
-            // $product7,
-            // $product8,
-            // $product9,
-            // $product10
+            $product6
         ]));
 
-        $collectionMock->getIterator();
-
         $collectionMock->method('getItems')->willReturnSelf();
-        //$collectionMock->method('getIterator')->willReturn(new \ArrayIterator([$product1]));
 
         $this->collectionFactoryMock->method('create')->willReturn($collectionMock);
 
@@ -380,6 +399,15 @@ class IndexTest extends TestCase
         $this->assertSame($this->rawResultMock, $result);
     }
 
+    /**
+     * Create a mock product for testing
+     *
+     * @param int $id The product ID
+     * @param string $name The product name
+     * @param string $slug The product URL key
+     * @param string $price The product price
+     * @return \PHPUnit\Framework\MockObject\MockObject
+     */
     private function createProduct($id, $name, $slug, $price = '10')
     {
         $productMock = $this->getMockBuilder(\Magento\Catalog\Model\Product::class)
