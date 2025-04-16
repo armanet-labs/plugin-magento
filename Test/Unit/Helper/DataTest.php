@@ -25,9 +25,9 @@ class DataTest extends TestCase
     protected function setUp(): void
     {
         $objectManager = new ObjectManager($this);
-        
+
         $this->scopeConfigMock = $this->createMock(ScopeConfigInterface::class);
-        
+
         $this->helper = $objectManager->getObject(Data::class, [
             'scopeConfig' => $this->scopeConfigMock
         ]);
@@ -39,7 +39,7 @@ class DataTest extends TestCase
     public function testGetApiKey()
     {
         $apiKey = 'test_api_key_123';
-        
+
         $this->scopeConfigMock->expects($this->once())
             ->method('getValue')
             ->with(
@@ -47,10 +47,10 @@ class DataTest extends TestCase
                 ScopeInterface::SCOPE_STORE
             )
             ->willReturn($apiKey);
-            
+
         $this->assertEquals($apiKey, $this->helper->getApiKey());
     }
-    
+
     /**
      * Test isTrackingEnabled method when tracking is enabled
      */
@@ -63,10 +63,10 @@ class DataTest extends TestCase
                 ScopeInterface::SCOPE_STORE
             )
             ->willReturn(true);
-            
+
         $this->assertTrue($this->helper->isTrackingEnabled());
     }
-    
+
     /**
      * Test isTrackingEnabled method when tracking is disabled
      */
@@ -79,10 +79,10 @@ class DataTest extends TestCase
                 ScopeInterface::SCOPE_STORE
             )
             ->willReturn(false);
-            
+
         $this->assertFalse($this->helper->isTrackingEnabled());
     }
-    
+
     /**
      * Test isFeedEnabled method when feed is enabled
      */
@@ -95,10 +95,10 @@ class DataTest extends TestCase
                 ScopeInterface::SCOPE_STORE
             )
             ->willReturn(true);
-            
+
         $this->assertTrue($this->helper->isFeedEnabled());
     }
-    
+
     /**
      * Test isFeedEnabled method when feed is disabled
      */
@@ -111,7 +111,7 @@ class DataTest extends TestCase
                 ScopeInterface::SCOPE_STORE
             )
             ->willReturn(false);
-            
+
         $this->assertFalse($this->helper->isFeedEnabled());
     }
 }
