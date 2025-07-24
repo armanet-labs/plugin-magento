@@ -5,6 +5,8 @@ namespace Armanet\Integration\Controller\ProductFeed;
 use Armanet\Integration\Helper\Data;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
+use Magento\Catalog\Model\Product\Type;
+use Magento\Catalog\Model\Product\Visibility;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
@@ -54,7 +56,7 @@ class Index extends Action
         CollectionFactory $productCollectionFactory,
         ProductRepositoryInterface $productRepository,
         Data $configHelper,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
     ) {
         parent::__construct($context);
         $this->resultRawFactory = $resultRawFactory;
@@ -98,6 +100,11 @@ class Index extends Action
         $collection = $this->productCollectionFactory->create()
             ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id', 'url_key'])
             ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
+            ->addAttributeToFilter('image', ['notnull' => true])
+            ->addAttributeToFilter('image', ['neq' => 'no_selection'])
+            ->addAttributeToFilter('visibility', [
+                'in' => [Visibility::VISIBILITY_IN_CATALOG, Visibility::VISIBILITY_BOTH]
+            ])
             ->addUrlRewrite()
             ->setStoreId($storeId)
             ->setPageSize($pageSize)
@@ -121,8 +128,7 @@ class Index extends Action
             $rows[] = [
                 'id' => $product->getId(),
                 'title' => $product->getName(),
-                'link' => $product->getUrlInStore(),
-                'product_link' => $product->getProductUrl(),
+                'link' => $product->getProductUrl(),
                 'image_link' => $product->getMediaConfig()->getMediaUrl($product->getImage()),
                 'link_key' => $product->getUrlKey(),
                 'price' => $product->getPrice(),
