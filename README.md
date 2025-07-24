@@ -55,3 +55,24 @@ To remove the module, run:
     $ composer remove armanet/integration
     $ php bin/magento setup:upgrade
     $ php bin/magento cache:flush
+
+## Testing
+
+### Unit Tests
+The module includes comprehensive unit tests that verify individual components functionality.
+
+To run all unit tests:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/phpunit -c app/code/Armanet/Integration/phpunit.xml.dist
+```
+
+To run specific test files:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/phpunit app/code/Armanet/Integration/Test/Unit/Helper/DataTest.php -c app/code/Armanet/Integration/phpunit.xml.dist
+$ ./vendor/bin/phpunit app/code/Armanet/Integration/Test/Unit/Block/CheckoutSuccess/IndexTest.php -c app/code/Armanet/Integration/phpunit.xml.dist
+$ ./vendor/bin/phpunit app/code/Armanet/Integration/Test/Unit/Controller/ProductFeed/IndexTest.php -c app/code/Armanet/Integration/phpunit.xml.dist
+```
