@@ -225,8 +225,8 @@ class Index extends Action
                 ]
             );
             if ($row) {
-                $minPrice = $row['min_price'];
-                $maxPrice = $row['max_price'];
+                $minPrice = $row['min_price'] ?? null;
+                $maxPrice = $row['max_price'] ?? null;
             }
         }
 
