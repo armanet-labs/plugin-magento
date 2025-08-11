@@ -20,16 +20,6 @@ use Magento\Store\Model\StoreManagerInterface;
 class Index extends Action
 {
     /**
-     * User agent string for HTTP requests
-     */
-    protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
-
-    /**
-     * Maximum number of products per feed page
-     */
-    protected const MAX_PAGE_SIZE = 10000;
-
-    /**
      * @var RawFactory
      */
     protected $resultRawFactory;
@@ -43,6 +33,16 @@ class Index extends Action
      * @var ProductRepositoryInterface
      */
     protected $productRepository;
+
+    /**
+     * User agent string for HTTP requests
+     */
+    protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
+
+    /**
+     * Maximum number of products per feed page
+     */
+    protected const MAX_PAGE_SIZE = 10000;
 
     /**
      * @var Data
