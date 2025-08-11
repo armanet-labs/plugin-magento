@@ -8,13 +8,27 @@ use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Type;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
+use Magento\Catalog\Pricing\Price\FinalPrice;
+use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableType;
+use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable as ConfigurableResource;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Store\Model\StoreManagerInterface;
 
 class Index extends Action
 {
+    /**
+     * User agent string for HTTP requests
+     */
+    protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
+
+    /**
+     * Maximum number of products per feed page
+     */
+    protected const MAX_PAGE_SIZE = 10000;
+
     /**
      * @var RawFactory
      */
@@ -31,16 +45,6 @@ class Index extends Action
     protected $productRepository;
 
     /**
-     * User agent string for HTTP requests
-     */
-    protected const UA = 'Mozilla/5.0 (X11; Armanet x86_64; rv:109.0) Gecko/20100101 Firefox/115.0';
-
-    /**
-     * Maximum number of products per feed page
-     */
-    protected const MAX_PAGE_SIZE = 10000;
-
-    /**
      * @var Data
      */
     protected $configHelper;
@@ -50,6 +54,21 @@ class Index extends Action
      */
     protected $storeManager;
 
+    /**
+     * @var ConfigurableType
+     */
+    protected $configurableType;
+
+    /**
+     * @var ConfigurableResource
+     */
+    protected $configurableResource;
+
+    /**
+     * @var ResourceConnection
+     */
+    protected $resource;
+
     public function __construct(
         Context $context,
         RawFactory $resultRawFactory,
@@ -57,6 +76,9 @@ class Index extends Action
         ProductRepositoryInterface $productRepository,
         Data $configHelper,
         StoreManagerInterface $storeManager,
+        ConfigurableType $configurableType,
+        ConfigurableResource $configurableResource,
+        ResourceConnection $resource
     ) {
         parent::__construct($context);
         $this->resultRawFactory = $resultRawFactory;
@@ -64,6 +86,9 @@ class Index extends Action
         $this->productRepository = $productRepository;
         $this->configHelper = $configHelper;
         $this->storeManager = $storeManager;
+        $this->configurableType = $configurableType;
+        $this->configurableResource = $configurableResource;
+        $this->resource = $resource;
     }
 
     public function execute()
@@ -81,7 +106,6 @@ class Index extends Action
         }
 
         $timestamp = date('YmdHi', time());
-        $apiKey = $this->configHelper->getApiKey();
         $expectedSig = hash_hmac('sha256', $timestamp, $apiKey);
 
         $feedSign = $request->getHeader('X-FeedSign');
@@ -94,10 +118,14 @@ class Index extends Action
         $currentPage = $request->getParam('p', 1);
         $pageSize = $request->getParam('s', self::MAX_PAGE_SIZE);
         $pageSize = min($pageSize, self::MAX_PAGE_SIZE);
-        $storeId = $this->storeManager->getStore()->getId();
+        $websiteId = $request->getParam('w', $this->storeManager->getWebsite()->getId());
+        $website = $this->storeManager->getWebsite($websiteId);
+        $storeId = (int)$website->getDefaultStore()->getId();
 
         // Process products in pages to avoid memory issues
         $collection = $this->productCollectionFactory->create()
+            ->addWebsiteFilter($websiteId)
+            ->setStoreId($storeId)
             ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id', 'url_key'])
             ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
             ->addAttributeToFilter('image', ['notnull' => true])
@@ -106,33 +134,59 @@ class Index extends Action
                 'in' => [Visibility::VISIBILITY_IN_CATALOG, Visibility::VISIBILITY_BOTH]
             ])
             ->addUrlRewrite()
-            ->setStoreId($storeId)
             ->setPageSize($pageSize)
             ->setCurPage($currentPage);
 
         // Create pager metadata
+        $total = (int) $collection->getSize();
+        $lastPage = (int) ceil($total / $pageSize);
         $pager = [
-            'total' => $collection->getSize(),
+            'total' => $total,
             'page' => $currentPage,
-            'next_page' => $currentPage + 1,
+            'next_page' => $currentPage < $lastPage ? $currentPage + 1 : 0,
             'page_size' => $pageSize,
+            'websiteId' => $websiteId,
+            'storeId' => $storeId,
         ];
-
-        // If we have less results than the page size, means last page
-        if ($collection->count() < $pageSize) {
-            $pager['next_page'] = 0;
-        }
 
         $rows = [];
         foreach ($collection as $product) {
-            $rows[] = [
-                'id' => $product->getId(),
+            $productTypeId = $product->getTypeId();
+            $productId = $product->getId();
+
+            // Skip simple products that are children of a configurable
+            if ($productTypeId === Type::TYPE_SIMPLE && !empty($this->configurableResource->getParentIdsByChild($productId))) {
+                continue;
+            }
+
+            $currentRow = [
+                'id' => $productId,
                 'title' => $product->getName(),
                 'link' => $product->getProductUrl(),
                 'image_link' => $product->getMediaConfig()->getMediaUrl($product->getImage()),
                 'link_key' => $product->getUrlKey(),
+                'type' => $productTypeId,
                 'price' => $product->getPrice(),
             ];
+
+            // Product type is configurable and has no price
+            if ($productTypeId === ConfigurableType::TYPE_CODE && (float) $product->getPrice() === 0.0) {
+                [$minPrice, $maxPrice] = $this->resolveMinAndMaxPrices($product, $websiteId, $storeId);
+
+                if (!$minPrice || !$maxPrice) {
+                    $rows[] = $currentRow;
+                    continue;
+                }
+
+                if ((float) $minPrice === (float) $maxPrice) {
+                    $currentRow['price'] = $minPrice;
+                } else {
+                    $currentRow['min_price'] = $minPrice;
+                    $currentRow['max_price'] = $maxPrice;
+                }
+            }
+
+            $rows[] = $currentRow;
         }
 
         // Build response with pager metadata
@@ -142,5 +196,56 @@ class Index extends Action
         ]));
 
         return $resultRaw;
+    }
+
+    private function resolveMinAndMaxPrices($product, int $websiteId, int $storeId): array
+    {
+        $product->setStoreId($storeId);
+
+        // First, try to get the price from the index (FinalPrice)
+        $finalPrice = $product->getPriceInfo()->getPrice(FinalPrice::PRICE_CODE);
+        $minPrice = $finalPrice->getMinimalPrice()->getValue();
+        $maxPrice = $finalPrice->getMaximalPrice()->getValue();
+
+        // If the index doesn't return a max price, try to get it from the DB
+        if (!$maxPrice || (float) $maxPrice === (float) $minPrice) {
+            $conn  = $this->resource->getConnection();
+            $table = $this->resource->getTableName('catalog_product_index_price');
+            $row = $conn->fetchRow(
+                "SELECT min_price, max_price
+                FROM {$table}
+                WHERE entity_id = :id
+                    AND website_id = :wid
+                    AND customer_group_id = 0
+                    AND (COALESCE(min_price,0) > 0 AND COALESCE(max_price,0) > 0)
+                LIMIT 1",
+                [
+                    'id' => (int)$product->getId(),
+                    'wid' => (int)$websiteId
+                ]
+            );
+            if ($row) {
+                $minPrice = $row['min_price'];
+                $maxPrice = $row['max_price'];
+            }
+        }
+
+        // If no valid max price, try to get it from the child collection (filtered)
+        if (!$maxPrice || (float) $maxPrice === (float) $minPrice) {
+            $childCollection = $this->configurableType
+                ->getUsedProductCollection($product)
+                ->addWebsiteFilter($websiteId)
+                ->addAttributeToSelect('price')
+                ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
+                ->addAttributeToFilter('price', ['gt' => 0]) // Only child products with price > 0
+                ->setStoreId($storeId);
+
+            if ($childCollection->getSize()) {
+                $minPrice = (clone $childCollection)->setOrder('price', 'ASC')->setPageSize(1)->getFirstItem()->getPrice();
+                $maxPrice = (clone $childCollection)->setOrder('price', 'DESC')->setPageSize(1)->getFirstItem()->getPrice();
+            }
+        }
+
+        return [$minPrice, $maxPrice];
     }
 }
