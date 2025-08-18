@@ -111,16 +111,7 @@ class Index extends Action
         $currentPage = $request->getParam('p', 1);
         $pageSize = $request->getParam('s', self::MAX_PAGE_SIZE);
         $pageSize = min($pageSize, self::MAX_PAGE_SIZE);
-        $websiteIdParam = $request->getParam('w');
-        $websiteId = null;
-        $website = $this->storeManager->getWebsite();
         $storeId = (int)$this->storeManager->getStore()->getId();
-
-        if ($websiteIdParam) {
-            $websiteId = $websiteIdParam;
-            $website = $this->storeManager->getWebsite($websiteId);
-            $storeId = (int)$website->getDefaultStore()->getId();
-        }
 
         // Process products in pages to avoid memory issues
         $collection = $this->productCollectionFactory->create()
@@ -136,10 +127,6 @@ class Index extends Action
             ->setPageSize($pageSize)
             ->setCurPage($currentPage);
 
-        if ($websiteId) {
-            $collection->addWebsiteFilter($websiteId);
-        }
-
         // Create pager metadata
         $total = (int) $collection->getSize();
         $pager = [
@@ -147,8 +134,6 @@ class Index extends Action
             'page' => $currentPage,
             'next_page' => $currentPage < ((int) ceil($total / $pageSize)) ? $currentPage + 1 : 0,
             'page_size' => $pageSize,
-            'websiteId' => $websiteId,
-            'storeId' => $storeId,
         ];
 
         $rows = [];
@@ -173,7 +158,7 @@ class Index extends Action
 
             // Product type is configurable and has no price
             if ($productTypeId === ConfigurableType::TYPE_CODE && (float) $product->getPrice() === 0.0) {
-                [$minPrice, $maxPrice] = $this->resolveMinAndMaxPrices($product, $websiteId, $storeId);
+                [$minPrice, $maxPrice] = $this->resolveMinAndMaxPrices($product, $storeId);
 
                 if (!$minPrice || !$maxPrice) {
                     $rows[] = $currentRow;
@@ -200,7 +185,7 @@ class Index extends Action
         return $resultRaw;
     }
 
-    private function resolveMinAndMaxPrices($product, $websiteId, int $storeId): array
+    private function resolveMinAndMaxPrices($product, int $storeId): array
     {
         $product->setStoreId($storeId);
 
@@ -213,20 +198,17 @@ class Index extends Action
         if (!$maxPrice || (float) $minPrice === (float) $maxPrice) {
             $conn = $this->resource->getConnection();
             $table = $this->resource->getTableName('catalog_product_index_price');
-            $params = ['id' => (int)$product->getId()];
-
-            $query = "SELECT min_price, max_price FROM {$table} WHERE entity_id = :id";
-
-            if ($websiteId) {
-                $query .= " AND website_id = :wid";
-                $params['wid'] = (int)$websiteId;
-            }
-
-            $query .= " AND customer_group_id = 0
-                AND (COALESCE(min_price,0) > 0 AND COALESCE(max_price,0) > 0)
-                LIMIT 1";
-
-            $row = $conn->fetchRow($query, $params);
+            $row = $conn->fetchRow(
+                "SELECT min_price, max_price
+                FROM {$table}
+                WHERE entity_id = :id
+                    AND customer_group_id = 0
+                    AND (COALESCE(min_price,0) > 0 AND COALESCE(max_price,0) > 0)
+                LIMIT 1",
+                [
+                    'id' => (int)$product->getId(),
+                ]
+            );
 
             if ($row) {
                 $minPrice = $row['min_price'] ?? null;
@@ -242,10 +224,6 @@ class Index extends Action
                 ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
                 ->addAttributeToFilter('price', ['gt' => 0]) // Only child products with price > 0
                 ->setStoreId($storeId);
-
-            if ($websiteId) {
-                $childCollection->addWebsiteFilter($websiteId);
-            }
 
             if ($childCollection->getSize()) {
                 $minPrice = (clone $childCollection)->setOrder('price', 'ASC')->setPageSize(1)->getFirstItem()->getPrice();
