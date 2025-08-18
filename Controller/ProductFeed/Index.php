@@ -95,22 +95,15 @@ class Index extends Action
     {
         $request = $this->getRequest();
 
-        // Create a Raw response object for CSV output
+        // Create a Raw response object for JSON output
         $resultRaw = $this->resultRawFactory->create();
-        $apiKey = $this->configHelper->getApiKey();
 
-        if (!$apiKey || !$this->configHelper->isFeedEnabled()) {
+        if (!$this->configHelper->isFeedEnabled() || !$this->configHelper->getApiKey()) {
             $resultRaw->setHttpResponseCode(404);
-
             return $resultRaw;
         }
 
-        $timestamp = date('YmdHi', time());
-        $expectedSig = hash_hmac('sha256', $timestamp, $apiKey);
-
-        $feedSign = $request->getHeader('X-FeedSign');
-        $userAgent = $request->getHeader('User-Agent');
-        if ($feedSign !== $expectedSig || $userAgent !== self::UA) {
+        if(!$this->allowAccess($request->getHeader('User-Agent'), $request->getHeader('X-FeedSign'))) {
             $resultRaw->setHttpResponseCode(404);
             return $resultRaw;
         }
@@ -118,13 +111,19 @@ class Index extends Action
         $currentPage = $request->getParam('p', 1);
         $pageSize = $request->getParam('s', self::MAX_PAGE_SIZE);
         $pageSize = min($pageSize, self::MAX_PAGE_SIZE);
-        $websiteId = $request->getParam('w', $this->storeManager->getWebsite()->getId());
-        $website = $this->storeManager->getWebsite($websiteId);
-        $storeId = (int)$website->getDefaultStore()->getId();
+        $websiteIdParam = $request->getParam('w');
+        $websiteId = null;
+        $website = $this->storeManager->getWebsite();
+        $storeId = (int)$this->storeManager->getStore()->getId();
+
+        if ($websiteIdParam) {
+            $websiteId = $websiteIdParam;
+            $website = $this->storeManager->getWebsite($websiteId);
+            $storeId = (int)$website->getDefaultStore()->getId();
+        }
 
         // Process products in pages to avoid memory issues
         $collection = $this->productCollectionFactory->create()
-            ->addWebsiteFilter($websiteId)
             ->setStoreId($storeId)
             ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id', 'url_key'])
             ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
@@ -137,13 +136,16 @@ class Index extends Action
             ->setPageSize($pageSize)
             ->setCurPage($currentPage);
 
+        if ($websiteId) {
+            $collection->addWebsiteFilter($websiteId);
+        }
+
         // Create pager metadata
         $total = (int) $collection->getSize();
-        $lastPage = (int) ceil($total / $pageSize);
         $pager = [
             'total' => $total,
             'page' => $currentPage,
-            'next_page' => $currentPage < $lastPage ? $currentPage + 1 : 0,
+            'next_page' => $currentPage < ((int) ceil($total / $pageSize)) ? $currentPage + 1 : 0,
             'page_size' => $pageSize,
             'websiteId' => $websiteId,
             'storeId' => $storeId,
@@ -198,7 +200,7 @@ class Index extends Action
         return $resultRaw;
     }
 
-    private function resolveMinAndMaxPrices($product, int $websiteId, int $storeId): array
+    private function resolveMinAndMaxPrices($product, $websiteId, int $storeId): array
     {
         $product->setStoreId($storeId);
 
@@ -208,22 +210,24 @@ class Index extends Action
         $maxPrice = $finalPrice->getMaximalPrice()->getValue();
 
         // If the index doesn't return a max price, try to get it from the DB
-        if (!$maxPrice || (float) $maxPrice === (float) $minPrice) {
-            $conn  = $this->resource->getConnection();
+        if (!$maxPrice || (float) $minPrice === (float) $maxPrice) {
+            $conn = $this->resource->getConnection();
             $table = $this->resource->getTableName('catalog_product_index_price');
-            $row = $conn->fetchRow(
-                "SELECT min_price, max_price
-                FROM {$table}
-                WHERE entity_id = :id
-                    AND website_id = :wid
-                    AND customer_group_id = 0
-                    AND (COALESCE(min_price,0) > 0 AND COALESCE(max_price,0) > 0)
-                LIMIT 1",
-                [
-                    'id' => (int)$product->getId(),
-                    'wid' => (int)$websiteId
-                ]
-            );
+            $params = ['id' => (int)$product->getId()];
+
+            $query = "SELECT min_price, max_price FROM {$table} WHERE entity_id = :id";
+
+            if ($websiteId) {
+                $query .= " AND website_id = :wid";
+                $params['wid'] = (int)$websiteId;
+            }
+
+            $query .= " AND customer_group_id = 0
+                AND (COALESCE(min_price,0) > 0 AND COALESCE(max_price,0) > 0)
+                LIMIT 1";
+
+            $row = $conn->fetchRow($query, $params);
+
             if ($row) {
                 $minPrice = $row['min_price'] ?? null;
                 $maxPrice = $row['max_price'] ?? null;
@@ -234,11 +238,14 @@ class Index extends Action
         if (!$maxPrice || (float) $maxPrice === (float) $minPrice) {
             $childCollection = $this->configurableType
                 ->getUsedProductCollection($product)
-                ->addWebsiteFilter($websiteId)
                 ->addAttributeToSelect('price')
                 ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
                 ->addAttributeToFilter('price', ['gt' => 0]) // Only child products with price > 0
                 ->setStoreId($storeId);
+
+            if ($websiteId) {
+                $childCollection->addWebsiteFilter($websiteId);
+            }
 
             if ($childCollection->getSize()) {
                 $minPrice = (clone $childCollection)->setOrder('price', 'ASC')->setPageSize(1)->getFirstItem()->getPrice();
@@ -247,5 +254,15 @@ class Index extends Action
         }
 
         return [$minPrice, $maxPrice];
+    }
+
+    private function allowAccess($userAgent, $feedSign)
+    {
+        if ($userAgent !== self::UA) {
+            return false;
+        }
+
+        $timestamp = date('YmdHi', time());
+        return hash_equals(hash_hmac('sha256', $timestamp, $this->configHelper->getApiKey()), $feedSign);
     }
 }
