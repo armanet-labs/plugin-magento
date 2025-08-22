@@ -103,7 +103,7 @@ class Index extends Action
             return $resultRaw;
         }
 
-        if(!$this->allowAccess($request->getHeader('User-Agent'), $request->getHeader('X-FeedSign'))) {
+        if (!$this->allowAccess($request->getHeader('User-Agent'), $request->getHeader('X-FeedSign'))) {
             $resultRaw->setHttpResponseCode(404);
             return $resultRaw;
         }
@@ -167,10 +167,10 @@ class Index extends Action
 
                 if ((float) $minPrice === (float) $maxPrice) {
                     $currentRow['price'] = $minPrice;
-                } else {
-                    $currentRow['min_price'] = $minPrice;
-                    $currentRow['max_price'] = $maxPrice;
                 }
+
+                $currentRow['min_price'] = $minPrice;
+                $currentRow['max_price'] = $maxPrice;
             }
 
             $rows[] = $currentRow;
@@ -182,6 +182,7 @@ class Index extends Action
             'meta' => $pager,
         ]));
 
+        $resultRaw->setHeader('Content-Type', 'application/json; charset=UTF-8', true);
         return $resultRaw;
     }
 

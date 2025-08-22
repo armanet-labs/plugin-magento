@@ -1,5 +1,4 @@
 <?php
-
 namespace Armanet\Integration\Test\Unit\Controller\ProductFeed;
 
 use Armanet\Integration\Controller\ProductFeed\Index;
@@ -567,7 +566,8 @@ class IndexTest extends TestCase
             });
     }
 
-    private function getProductExpectedPayload($product, $minPrice = null, $maxPrice = null) {
+    private function getProductExpectedPayload($product, $minPrice = null, $maxPrice = null)
+    {
         $payload = [
             'id' => $product->getId(),
             'title' => $product->getName(),
@@ -581,10 +581,9 @@ class IndexTest extends TestCase
         if ($minPrice && $maxPrice) {
             if ((float) $minPrice === (float) $maxPrice) {
                 $payload['price'] = $minPrice;
-            } else {
-                $payload['min_price'] = $minPrice;
-                $payload['max_price'] = $maxPrice;
             }
+            $payload['min_price'] = $minPrice;
+            $payload['max_price'] = $maxPrice;
         }
 
         return $payload;
