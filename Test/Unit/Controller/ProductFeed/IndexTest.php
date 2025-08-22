@@ -1,4 +1,5 @@
 <?php
+
 namespace Armanet\Integration\Test\Unit\Controller\ProductFeed;
 
 use Armanet\Integration\Controller\ProductFeed\Index;
