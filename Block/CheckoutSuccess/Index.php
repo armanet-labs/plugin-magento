@@ -2,8 +2,8 @@
 
 namespace Armanet\Integration\Block\CheckoutSuccess;
 
-use Magento\Framework\View\Element\Template;
 use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Framework\View\Element\Template;
 use Magento\Sales\Model\Order;
 
 class Index extends Template
