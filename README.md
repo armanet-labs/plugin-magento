@@ -2,6 +2,8 @@
 
 The **Armanet_Integration** module for Magento 2.4 facilitates seamless integration between Magento and Armanet services, enhancing your e-commerce platform's capabilities.
 
+> 📚 **Full documentation:** https://developer.armanet.co/plugins/magento
+
 ## Installation
 
 ### 1. Install via Composer (Recommended)
@@ -34,7 +36,7 @@ Enable and install the module:
 * Save the configuration and clear the cache:
 
 ```
-    $ php bin/magento cache:flush
+$ php bin/magento cache:flush
 ```
 
 
@@ -52,6 +54,46 @@ Run the following command to recompile:
 To remove the module, run:
 
     $ php bin/magento module:disable Armanet_Integration
-    $ composer remove armanet/integration
+    $ composer remove armanet/magento-integration
     $ php bin/magento setup:upgrade
     $ php bin/magento cache:flush
+
+## Development
+
+### Unit Tests
+The module includes comprehensive unit tests that verify individual components' functionality.
+
+To run all unit tests:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/phpunit -c app/code/Armanet/Integration/phpunit.xml.dist
+```
+
+To run specific test files:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/phpunit app/code/Armanet/Integration/Test/Unit/Controller/ProductFeed/IndexTest.php -c app/code/Armanet/Integration/phpunit.xml.dist
+```
+
+### Code Style
+The module adheres to PSR coding standards, ensuring a consistent and readable codebase.
+
+To check code formatting:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/php-cs-fixer fix --dry-run app/code/Armanet/Integration
+```
+
+To fix code formatting:
+
+```bash
+$ cd <magento_root>
+$ ./vendor/bin/php-cs-fixer fix app/code/Armanet/Integration
+```
+
+## License
+The Armanet_Integration module is released under the [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) license.
+For more information, see the [LICENSE](LICENSE) file.

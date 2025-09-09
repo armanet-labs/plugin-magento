@@ -14,24 +14,24 @@ class Data extends AbstractHelper
     public function getApiKey()
     {
         return $this->scopeConfig->getValue(
-           self::CONFIG_PATH_API_KEY,
-           ScopeInterface::SCOPE_STORE,
+            self::CONFIG_PATH_API_KEY,
+            ScopeInterface::SCOPE_STORE,
        );
     }
 
     public function isTrackingEnabled()
     {
        return $this->scopeConfig->isSetFlag(
-           self::CONFIG_PATH_ENABLE_TRACKING,
-           ScopeInterface::SCOPE_STORE,
+            self::CONFIG_PATH_ENABLE_TRACKING,
+            ScopeInterface::SCOPE_STORE,
        );
     }
 
     public function isFeedEnabled()
     {
        return $this->scopeConfig->isSetFlag(
-           self::CONFIG_PATH_ENABLE_FEED,
-           ScopeInterface::SCOPE_STORE,
+            self::CONFIG_PATH_ENABLE_FEED,
+            ScopeInterface::SCOPE_STORE,
        );
     }
 }

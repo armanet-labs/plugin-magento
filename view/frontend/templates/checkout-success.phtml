@@ -1,45 +1,45 @@
 <?php
-  /** @var \Armanet\Integration\Block\CheckoutSuccess\Index $block */
-  /** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+/** @var \Armanet\Integration\Block\CheckoutSuccess\Index $block */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
 
-  $order = $block->getOrder();
+$order = $block->getOrder();
 
-  $helper = $this->helper(\Armanet\Integration\Helper\Data::class);
-  $isTrackingEnabled = $helper->isTrackingEnabled();
+$helper = $this->helper(\Armanet\Integration\Helper\Data::class);
+$isTrackingEnabled = $helper->isTrackingEnabled();
 
-  if ($isTrackingEnabled) {
-      $orderId = $block->escapeJs($block->getOrderId());
-      $orderTotal = $block->escapeJs($block->getOrderTotal());
-      $items = [];
+if ($isTrackingEnabled) {
+    $orderId = $block->escapeJs($block->getOrderId());
+    $orderTotal = $block->escapeJs($block->getOrderTotal());
+    $items = [];
 
-      foreach ($block->getItems() as $item) {
+    foreach ($block->getItems() as $item) {
         $items[] = [
-          'itemId' => $block->escapeJs($item->getItemId()),
-          'upc' => $block->escapeJs($item->getSku()),
-          'price' => $block->escapeJs($item->getPrice()),
-          'quantity' => $block->escapeJs($item->getQtyOrdered()),
+            'itemId' => $block->escapeJs($item->getItemId()),
+            'upc' => $block->escapeJs($item->getSku()),
+            'price' => $block->escapeJs($item->getPrice()),
+            'quantity' => $block->escapeJs($item->getQtyOrdered()),
         ];
-      }
+    }
 
-      $itemsJson = json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $itemsJson = json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-      $scriptContent = "
+    $scriptContent = "
         require(['jquery', 'checkout_success'], function($, checkoutSuccess) {
-          $(document).ready(function() {
-            var orderNumber = '" . $orderId . "';
-            var orderTotal = '". $orderTotal . "';
-            var items = " . $itemsJson . ";
+            $(document).ready(function() {
+                var orderNumber = '" . $orderId . "';
+                var orderTotal = '" . $orderTotal . "';
+                var items = " . $itemsJson . ";
 
-            var final = {
-              orderNumber: orderNumber,
-              orderTotal: orderTotal,
-              items: items,
-            };
+                var final = {
+                    orderNumber: orderNumber,
+                    orderTotal: orderTotal,
+                    items: items,
+                };
 
-            checkoutSuccess(final);
-          });
+                checkoutSuccess(final);
+            });
         });
-      ";
+    ";
 
-      echo $secureRenderer->renderTag('script', [], $scriptContent, false);
-  }
+    echo $secureRenderer->renderTag('script', [], $scriptContent, false);
+}
