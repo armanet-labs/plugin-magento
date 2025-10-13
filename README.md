@@ -2,7 +2,7 @@
 
 The **Armanet_Integration** module for Magento 2.4 facilitates seamless integration between Magento and Armanet services, enhancing your e-commerce platform's capabilities.
 
-> 📚 **Full documentation:** https://developer.armanet.co/plugins/magento
+> 📚 **Full documentation:** https://developer.armanet.ai/plugins/magento
 
 ## Installation
 
