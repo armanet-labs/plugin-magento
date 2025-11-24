@@ -116,7 +116,7 @@ class Index extends Action
         // Process products in pages to avoid memory issues
         $collection = $this->productCollectionFactory->create()
             ->setStoreId($storeId)
-            ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id', 'url_key'])
+            ->addAttributeToSelect(['name', 'price', 'sku', 'image', 'entity_id', 'url_key', 'upc'])
             ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
             ->addAttributeToFilter('image', ['notnull' => true])
             ->addAttributeToFilter('image', ['neq' => 'no_selection'])
@@ -154,6 +154,8 @@ class Index extends Action
                 'link_key' => $product->getUrlKey(),
                 'type' => $productTypeId,
                 'price' => $product->getPrice(),
+                'upc' => $product->getUpc(),
+                'sku' => $product->getSku(),
             ];
 
             // Product type is configurable and has no price
