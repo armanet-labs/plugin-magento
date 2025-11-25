@@ -577,6 +577,8 @@ class IndexTest extends TestCase
             'link_key' => $product->getUrlKey(),
             'type' => $product->getTypeId(),
             'price' => $product->getPrice(),
+            'upc' => $product->getUpc(),
+            'sku' => $product->getSku(),
         ];
 
         if ($minPrice && $maxPrice) {

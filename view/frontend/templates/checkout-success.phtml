@@ -13,9 +13,13 @@ if ($isTrackingEnabled) {
     $items = [];
 
     foreach ($block->getItems() as $item) {
+        $upc = null;
+        if ($item->getProduct()) {
+            $upc = $item->getProduct()->getUpc();
+        }
         $items[] = [
             'itemId' => $block->escapeJs($item->getItemId()),
-            'upc' => $block->escapeJs($item->getSku()),
+            'upc' => $block->escapeJs($upc ?? $item->getSku()),
             'price' => $block->escapeJs($item->getPrice()),
             'quantity' => $block->escapeJs($item->getQtyOrdered()),
         ];
