@@ -100,4 +100,30 @@ class DataTest extends TestCase
 
         $this->assertFalse($this->helper->isFeedEnabled());
     }
+
+    public function testGetUpcAttributeReturnsConfiguredValue()
+    {
+        $this->scopeConfigMock->expects($this->once())
+            ->method('getValue')
+            ->with(
+                Data::CONFIG_PATH_UPC_ATTRIBUTE,
+                ScopeInterface::SCOPE_STORE
+            )
+            ->willReturn('gtin');
+
+        $this->assertSame('gtin', $this->helper->getUpcAttribute());
+    }
+
+    public function testGetUpcAttributeReturnsDefaultWhenConfigIsEmpty()
+    {
+        $this->scopeConfigMock->expects($this->once())
+            ->method('getValue')
+            ->with(
+                Data::CONFIG_PATH_UPC_ATTRIBUTE,
+                ScopeInterface::SCOPE_STORE
+            )
+            ->willReturn(null);
+
+        $this->assertSame('upc', $this->helper->getUpcAttribute());
+    }
 }

@@ -2,12 +2,13 @@
 /** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
 
 $helper = $this->helper(\Armanet\Integration\Helper\Data::class);
-$isTrackingEnabled = $helper->isTrackingEnabled();
 
-if ($isTrackingEnabled) {
+if ($helper->isTrackingEnabled() && !$helper->isCurrentUserExcluded()) {
+    $debug = $helper->isDebugEnabled() ? 'true' : 'false';
+
     $scriptContent = "
         require(['armanet_cart_listener'], function(cartListener) {
-            cartListener();
+            cartListener({debug: {$debug}});
         });
     ";
 

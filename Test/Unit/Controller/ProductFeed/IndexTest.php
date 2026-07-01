@@ -4,10 +4,10 @@ namespace Armanet\Integration\Test\Unit\Controller\ProductFeed;
 
 use Armanet\Integration\Controller\ProductFeed\Index;
 use Armanet\Integration\Helper\Data;
-use ArrayIterator;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Media\Config;
+use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Catalog\Pricing\Price\FinalPrice;
@@ -19,6 +19,7 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\DB\Select;
 use Magento\Framework\HTTP\PhpEnvironment\Request;
 use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
@@ -79,6 +80,15 @@ class IndexTest extends TestCase
     /** @var \PHPUnit\Framework\MockObject\MockObject|Raw */
     protected $collectionMock;
 
+    /** @var CategoryCollectionFactory&\PHPUnit\Framework\MockObject\MockObject */
+    protected $categoryCollectionFactoryMock;
+
+    /** @var Select&\PHPUnit\Framework\MockObject\MockObject */
+    protected $collectionSelectMock;
+
+    /** @var Select&\PHPUnit\Framework\MockObject\MockObject */
+    protected $dbSelectMock;
+
     protected function setUp(): void
     {
         $reflection = new \ReflectionClass(Index::class);
@@ -91,6 +101,7 @@ class IndexTest extends TestCase
         $this->configHelperMock = $this->createMock(Data::class);
         $this->configHelperMock->method('isFeedEnabled')->willReturn(true);
         $this->configHelperMock->method('getApiKey')->willReturn($this->defaultApiKey);
+        $this->configHelperMock->method('getUpcAttribute')->willReturn('upc');
 
         // Create a mock for the request and set it in the context
         $this->requestMock = $this->getMockBuilder(Request::class)->disableOriginalConstructor()->getMock();
@@ -111,9 +122,21 @@ class IndexTest extends TestCase
         $this->configurableResource = $this->createMock(ConfigurableResource::class);
 
         $this->connectionMock = $this->createMock(AdapterInterface::class);
+
+        // DB select mock for the category name loading query
+        $this->dbSelectMock = $this->getMockBuilder(Select::class)->disableOriginalConstructor()->getMock();
+        $this->dbSelectMock->method('from')->willReturnSelf();
+        $this->dbSelectMock->method('where')->willReturnSelf();
+        $this->connectionMock->method('select')->willReturn($this->dbSelectMock);
+        $this->connectionMock->method('fetchAll')->willReturn([]);
+
         $this->resourceMock = $this->getMockBuilder(ResourceConnection::class)->disableOriginalConstructor()->getMock();
         $this->resourceMock->method('getConnection')->willReturn($this->connectionMock);
-        $this->resourceMock->method('getTableName')->with('catalog_product_index_price')->willReturn('catalog_product_index_price');
+        $this->resourceMock->method('getTableName')->willReturnArgument(0);
+
+        // Select mock for the collection's stock join
+        $this->collectionSelectMock = $this->getMockBuilder(Select::class)->disableOriginalConstructor()->getMock();
+        $this->collectionSelectMock->method('joinLeft')->willReturnSelf();
 
         $this->collectionMock = $this->getMockBuilder(Collection::class)->disableOriginalConstructor()->getMock();
         $this->collectionMock->method('addAttributeToSelect')->willReturnSelf();
@@ -123,7 +146,10 @@ class IndexTest extends TestCase
         $this->collectionMock->method('setPageSize')->willReturnSelf();
         $this->collectionMock->method('setCurPage')->willReturnSelf();
         $this->collectionMock->method('clear')->willReturn(null);
-        $this->collectionMock->method('getItems')->willReturnSelf();
+        $this->collectionMock->method('load')->willReturnSelf();
+        $this->collectionMock->method('getSelect')->willReturn($this->collectionSelectMock);
+
+        $this->categoryCollectionFactoryMock = $this->createMock(CategoryCollectionFactory::class);
 
         // Instantiate the controller with our mocks
         $this->controller = new Index(
@@ -136,6 +162,7 @@ class IndexTest extends TestCase
             $this->configurableTypeMock,
             $this->configurableResource,
             $this->resourceMock,
+            $this->categoryCollectionFactoryMock,
         );
 
         $refObj = new \ReflectionObject($this->controller);
@@ -183,7 +210,7 @@ class IndexTest extends TestCase
 
         $this->collectionMock->method('getSize')->willReturn(0);
         $this->collectionMock->method('count')->willReturn(0);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([]));
+        $this->collectionMock->method('getItems')->willReturn([]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -213,7 +240,7 @@ class IndexTest extends TestCase
 
         $this->collectionMock->method('getSize')->willReturn(1);
         $this->collectionMock->method('count')->willReturn(1);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([$product1]));
+        $this->collectionMock->method('getItems')->willReturn([1 => $product1]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -259,11 +286,11 @@ class IndexTest extends TestCase
         $this->collectionMock->method('getPageSize')->willReturn(3);
         $this->collectionMock->method('getSize')->willReturn(10);
         $this->collectionMock->method('count')->willReturn(7);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([
-            $product4,
-            $product5,
-            $product6
-        ]));
+        $this->collectionMock->method('getItems')->willReturn([
+            4 => $product4,
+            5 => $product5,
+            6 => $product6,
+        ]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -303,12 +330,12 @@ class IndexTest extends TestCase
         $this->collectionMock->method('getPageSize')->willReturn(3);
         $this->collectionMock->method('getSize')->willReturn(10);
         $this->collectionMock->method('count')->willReturn(7);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([
-            $product1,
-            $product2,
-            $product3,
-            $product4,
-        ]));
+        $this->collectionMock->method('getItems')->willReturn([
+            1 => $product1,
+            2 => $product2,
+            3 => $product3,
+            4 => $product4,
+        ]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -347,10 +374,10 @@ class IndexTest extends TestCase
         $this->collectionMock->method('getPageSize')->willReturn(3);
         $this->collectionMock->method('getSize')->willReturn(10);
         $this->collectionMock->method('count')->willReturn(7);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([
-            $product1,
-            $product2,
-        ]));
+        $this->collectionMock->method('getItems')->willReturn([
+            1 => $product1,
+            2 => $product2,
+        ]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -389,10 +416,10 @@ class IndexTest extends TestCase
         $this->collectionMock->method('getPageSize')->willReturn(3);
         $this->collectionMock->method('getSize')->willReturn(10);
         $this->collectionMock->method('count')->willReturn(7);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([
-            $product1,
-            $product2,
-        ]));
+        $this->collectionMock->method('getItems')->willReturn([
+            1 => $product1,
+            2 => $product2,
+        ]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -446,10 +473,10 @@ class IndexTest extends TestCase
         $this->collectionMock->method('getPageSize')->willReturn(3);
         $this->collectionMock->method('getSize')->willReturn(10);
         $this->collectionMock->method('count')->willReturn(7);
-        $this->collectionMock->method('getIterator')->willReturn(new ArrayIterator([
-            $product1,
-            $product2,
-        ]));
+        $this->collectionMock->method('getItems')->willReturn([
+            1 => $product1,
+            2 => $product2,
+        ]);
 
         $this->collectionFactoryMock->method('create')->willReturn($this->collectionMock);
 
@@ -513,16 +540,33 @@ class IndexTest extends TestCase
         $productMock->method('getImage')->willReturn($slug . '.jpg');
         $productMock->method('getPrice')->willReturn($price);
         $productMock->method('getTypeId')->willReturn($type);
-
-        $productMock->method('__call')->willReturnCallback(function ($name, $args) use ($slug) {
-            if ($name === 'getUrlKey') {
-                return $slug;
+        $productMock->method('getSku')->willReturn('SKU-' . $id);
+        $productMock->method('getData')->willReturnCallback(function ($key) use ($id) {
+            if ($key === 'stock_qty') {
+                return 10;
+            }
+            if ($key === 'upc') {
+                return 'UPC-' . $id;
             }
             return null;
         });
 
+        $productMock->method('__call')->willReturnCallback(function ($name, $args) use ($slug) {
+            switch ($name) {
+                case 'getUrlKey': return $slug;
+                case 'getSpecialPrice': return null;
+                case 'getSpecialFromDate': return null;
+                case 'getSpecialToDate': return null;
+                case 'getShortDescription': return 'Short description';
+                case 'getWeight': return '1.5';
+                default: return null;
+            }
+        });
+
         $mediaConfigMock = $this->getMockBuilder(Config::class)->disableOriginalConstructor()->onlyMethods(['getMediaUrl'])->getMock();
-        $mediaConfigMock->method('getMediaUrl')->with($slug . '.jpg')->willReturn(sprintf('http://example.com/media/%s.jpg', $slug));
+        $mediaConfigMock->method('getMediaUrl')->willReturnCallback(function ($path) use ($slug) {
+            return $path === $slug . '.jpg' ? sprintf('http://example.com/media/%s.jpg', $slug) : null;
+        });
         $productMock->method('getMediaConfig')->willReturn($mediaConfigMock);
 
         return $productMock;
@@ -570,21 +614,29 @@ class IndexTest extends TestCase
     private function getProductExpectedPayload($product, $minPrice = null, $maxPrice = null)
     {
         $payload = [
-            'id' => $product->getId(),
-            'title' => $product->getName(),
-            'link' => $product->getProductUrl(),
-            'image_link' => $product->getMediaConfig()->getMediaUrl($product->getImage()),
-            'link_key' => $product->getUrlKey(),
-            'type' => $product->getTypeId(),
-            'price' => $product->getPrice(),
-            'upc' => $product->getUpc(),
-            'sku' => $product->getSku(),
+            'id'             => $product->getId(),
+            'title'          => $product->getName(),
+            'link'           => $product->getProductUrl(),
+            'image_link'     => $product->getMediaConfig()->getMediaUrl($product->getImage()),
+            'link_key'       => $product->getUrlKey(),
+            'type'           => $product->getTypeId(),
+            'price'          => $product->getPrice(),
+            'upc'            => $product->getData('upc'),
+            'sku'            => $product->getSku(),
+            'availability'   => 'in_stock',
+            'regular_price'  => $product->getPrice(),
+            'sale_price'     => '',
+            'is_on_sale'     => 0,
+            'stock_quantity' => 10,
+            'description'    => $product->getShortDescription(),
+            'categories'     => '',
+            'tags'           => '',
+            'weight'         => $product->getWeight() ?? '',
         ];
 
         if ($minPrice && $maxPrice) {
-            if ((float) $minPrice === (float) $maxPrice) {
-                $payload['price'] = $minPrice;
-            }
+            $payload['price'] = $minPrice;
+            $payload['regular_price'] = $minPrice;
             $payload['min_price'] = $minPrice;
             $payload['max_price'] = $maxPrice;
         }

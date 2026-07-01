@@ -3,11 +3,13 @@
 namespace Armanet\Integration\Test\Unit\Block\CheckoutSuccess;
 
 use Armanet\Integration\Block\CheckoutSuccess\Index;
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Armanet\Integration\Helper\Data as ConfigHelper;
+use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address as OrderAddress;
 use Magento\Sales\Model\Order\Item as OrderItem;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
 use PHPUnit\Framework\TestCase;
 
 class IndexTest extends TestCase
@@ -31,7 +33,9 @@ class IndexTest extends TestCase
         $this->shippingAddressMock = $this->createMock(OrderAddress::class);
 
         $this->block = $objectManager->getObject(Index::class, [
-            'checkoutSession' => $this->checkoutSessionMock
+            'checkoutSession'        => $this->checkoutSessionMock,
+            'orderCollectionFactory' => $this->createMock(OrderCollectionFactory::class),
+            'configHelper'           => $this->createMock(ConfigHelper::class),
         ]);
     }
 

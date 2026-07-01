@@ -4,4 +4,14 @@
     <head>
         <script src="https://assets.armanet.us/armanet-pxl.js" src_type="url" defer="true"/>
     </head>
+    <body>
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                name="armanet.cart.listener"
+                template="Armanet_Integration::cart-listener.phtml"/>
+            <block class="Armanet\Integration\Block\UserEvents"
+                name="armanet.user.events"
+                template="Armanet_Integration::user-events.phtml"/>
+        </referenceContainer>
+    </body>
 </page>

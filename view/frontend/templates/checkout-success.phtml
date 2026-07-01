@@ -2,46 +2,60 @@
 /** @var \Armanet\Integration\Block\CheckoutSuccess\Index $block */
 /** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
 
-$order = $block->getOrder();
-
 $helper = $this->helper(\Armanet\Integration\Helper\Data::class);
-$isTrackingEnabled = $helper->isTrackingEnabled();
 
-if ($isTrackingEnabled) {
-    $orderId = $block->escapeJs($block->getOrderId());
-    $orderTotal = $block->escapeJs($block->getOrderTotal());
+if ($helper->isTrackingEnabled() && !$helper->isCurrentUserExcluded()) {
+    $upcAttr = $helper->getUpcAttribute();
     $items = [];
-
     foreach ($block->getItems() as $item) {
-        $upc = null;
+        $upc = '';
         if ($item->getProduct()) {
-            $upc = $item->getProduct()->getUpc();
+            $upc = (string) $item->getProduct()->getData($upcAttr);
         }
-        $items[] = [
-            'itemId' => $block->escapeJs($item->getItemId()),
-            'upc' => $block->escapeJs($upc ?? $item->getSku()),
-            'price' => $block->escapeJs($item->getPrice()),
-            'quantity' => $block->escapeJs($item->getQtyOrdered()),
+
+        $itemData = [
+            'itemId'   => $item->getProductId(),
+            'itemName' => $item->getName(),
+            'sku'      => $item->getSku(),
+            'upc'      => $upc,
+            'price'    => $item->getPrice(),
+            'quantity' => $item->getQtyOrdered(),
         ];
+
+        $childItems = $item->getChildrenItems();
+        if ($childItems && count($childItems) > 0) {
+            $firstChild = reset($childItems);
+            $itemData['variationId'] = $firstChild->getProductId();
+        }
+
+        $items[] = $itemData;
     }
 
-    $itemsJson = json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $coupon = $block->getCouponCode();
+    $customer = $block->getCustomerData();
+
+    $payload = [
+        'orderNumber' => $block->getOrderId(),
+        'orderTotal'  => $block->getOrderTotal(),
+        'subtotal'    => $block->getSubtotal(),
+        'currency'    => $block->getCurrencyCode(),
+        'discount'    => $block->getDiscountAmount(),
+        'tax'         => $block->getTaxAmount(),
+        'shipping'    => $block->getShippingAmount(),
+        'items'       => $items,
+        'customer'    => $customer,
+    ];
+
+    if ($coupon) {
+        $payload['coupon'] = $coupon;
+    }
+
+    $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+    $debug = $helper->isDebugEnabled() ? 'true' : 'false';
 
     $scriptContent = "
-        require(['jquery', 'checkout_success'], function($, checkoutSuccess) {
-            $(document).ready(function() {
-                var orderNumber = '" . $orderId . "';
-                var orderTotal = '" . $orderTotal . "';
-                var items = " . $itemsJson . ";
-
-                var final = {
-                    orderNumber: orderNumber,
-                    orderTotal: orderTotal,
-                    items: items,
-                };
-
-                checkoutSuccess(final);
-            });
+        require(['checkout_success'], function(checkoutSuccess) {
+            checkoutSuccess({$payloadJson}, {$debug});
         });
     ";
 
