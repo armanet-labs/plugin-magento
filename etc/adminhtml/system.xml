@@ -43,18 +43,12 @@
             <comment>Track when a customer registers a new account.</comment>
         </field>
 
-        <field id="stale_buyer_days" translate="label" type="text" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="1">
-            <label>Stale Buyer Days</label>
-            <comment>Number of days since last purchase before a returning customer is considered a stale buyer. Default: 180.</comment>
-            <validate>required-entry validate-digits validate-greater-than-zero</validate>
-        </field>
-
-        <field id="excluded_customer_groups" translate="label" type="text" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
+        <field id="excluded_customer_groups" translate="label" type="text" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Exclude Customer Groups from Tracking</label>
             <comment>Comma-separated customer group names to exclude from all tracking. Example: General, Wholesale</comment>
         </field>
 
-        <field id="debug_mode" translate="label" type="select" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="1">
+        <field id="debug_mode" translate="label" type="select" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Debug Mode</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
             <comment>Log all Armanet events to the browser console.</comment>

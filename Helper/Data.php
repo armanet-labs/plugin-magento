@@ -12,7 +12,6 @@ class Data extends AbstractHelper
     const CONFIG_PATH_API_KEY = 'armanet/settings/api_key';
     const CONFIG_PATH_ENABLE_TRACKING = 'armanet/settings/enable_tracking';
     const CONFIG_PATH_ENABLE_FEED = 'armanet/settings/enable_feed';
-    const CONFIG_PATH_STALE_BUYER_DAYS = 'armanet/settings/stale_buyer_days';
     const CONFIG_PATH_DEBUG_MODE = 'armanet/settings/debug_mode';
     const CONFIG_PATH_EXCLUDED_GROUPS = 'armanet/settings/excluded_customer_groups';
     const CONFIG_PATH_ENABLE_LOGIN_EVENT = 'armanet/settings/enable_login_event';
@@ -63,14 +62,6 @@ class Data extends AbstractHelper
             self::CONFIG_PATH_DEBUG_MODE,
             ScopeInterface::SCOPE_STORE,
         );
-    }
-
-    public function getStaleBuyerDays(): int
-    {
-        return (int) ($this->scopeConfig->getValue(
-            self::CONFIG_PATH_STALE_BUYER_DAYS,
-            ScopeInterface::SCOPE_STORE,
-        ) ?: 180);
     }
 
     public function isLoginEventEnabled(): bool

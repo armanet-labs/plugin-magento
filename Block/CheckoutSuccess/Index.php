@@ -2,7 +2,6 @@
 
 namespace Armanet\Integration\Block\CheckoutSuccess;
 
-use Armanet\Integration\Helper\Data as ConfigHelper;
 use Magento\Framework\View\Element\Template;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
@@ -12,18 +11,15 @@ class Index extends Template
     protected $checkoutSession;
     protected $order;
     protected $orderCollectionFactory;
-    protected $configHelper;
 
     public function __construct(
         Template\Context $context,
         \Magento\Checkout\Model\Session\Proxy $checkoutSession,
         OrderCollectionFactory $orderCollectionFactory,
-        ConfigHelper $configHelper,
         array $data = []
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->orderCollectionFactory = $orderCollectionFactory;
-        $this->configHelper = $configHelper;
         parent::__construct($context, $data);
     }
 
@@ -91,13 +87,11 @@ class Index extends Template
         $billing = $order->getBillingAddress();
         $history = $this->getPriorOrderHistory();
         $priorCount = $history['count'];
-        $staleBuyerDays = $this->configHelper->getStaleBuyerDays();
 
-        $isStaleBuyer = false;
+        $daysSinceLastPurchase = null;
         if ($priorCount > 0 && $history['last_order_date'] !== null && $order->getCreatedAt()) {
-            $threshold = new \DateTime($order->getCreatedAt());
-            $threshold->modify("-{$staleBuyerDays} days");
-            $isStaleBuyer = $history['last_order_date'] <= $threshold;
+            $orderDate = new \DateTime($order->getCreatedAt());
+            $daysSinceLastPurchase = (int) $history['last_order_date']->diff($orderDate)->days;
         }
 
         $data = [
@@ -107,14 +101,11 @@ class Index extends Template
             'city' => $billing ? $billing->getCity() : null,
             'state' => $billing ? $billing->getRegionCode() : null,
             'postcode' => $billing ? $billing->getPostcode() : null,
+            'daysSinceLastPurchase' => $daysSinceLastPurchase,
         ];
 
         if ($priorCount === 0) {
             $data['isFirstPurchase'] = true;
-        }
-
-        if ($isStaleBuyer) {
-            $data['isStaleBuyer'] = true;
         }
 
         return $data;
