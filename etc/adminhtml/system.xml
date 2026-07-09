@@ -34,24 +34,24 @@
         <field id="enable_login_event" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Enable Login Event</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-            <comment>Track when a customer logs in to their account.</comment>
+            <comment>Measure customer login events.</comment>
         </field>
 
         <field id="enable_registration_event" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Enable Registration Event</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-            <comment>Track when a customer registers a new account.</comment>
+            <comment>Measure account registration events.</comment>
         </field>
 
         <field id="excluded_customer_groups" translate="label" type="text" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Exclude Customer Groups from Tracking</label>
-            <comment>Comma-separated customer group names to exclude from all tracking. Example: General, Wholesale</comment>
+            <comment>Comma-separated customer groups that will not generate measurement events. Example: General, Wholesale</comment>
         </field>
 
         <field id="debug_mode" translate="label" type="select" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Debug Mode</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-            <comment>Log all Armanet events to the browser console.</comment>
+            <comment>Log events to the browser console for debugging.</comment>
         </field>
       </group>
     </section>
