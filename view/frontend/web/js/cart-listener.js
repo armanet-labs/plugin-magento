@@ -12,7 +12,6 @@ define([
       console.log('[Armanet] cart-listener initialized');
     }
 
-    // addedToCart: snapshot cart state before the add, diff after section refreshes
     $(document).on('ajax:addToCart', function (event, data) {
       var cart = customerData.get('cart')();
       pendingCartState = {};
@@ -44,7 +43,6 @@ define([
       }
     });
 
-    // removedFromCart (minicart): sidebar POSTs to checkout/sidebar/removeItem via jQuery AJAX
     $(document).on('ajaxSend', function (event, xhr, settings) {
       if (!settings.url || settings.url.indexOf('checkout/sidebar/removeItem') === -1) return;
 
@@ -65,8 +63,6 @@ define([
       }
     });
 
-    // removedFromCart (cart page): href is "#" with data-post JSON — capture phase bypasses
-    // any stopPropagation from Magento's data-post widget
     document.addEventListener('click', function (e) {
       var el = e.target.closest('[data-post]');
       if (!el) return;
