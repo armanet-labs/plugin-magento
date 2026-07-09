@@ -3,6 +3,7 @@
 namespace Armanet\Integration\Helper;
 
 use Magento\Customer\Api\GroupRepositoryInterface;
+use Magento\Customer\Model\Session\Proxy as CustomerSessionProxy;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\ScopeInterface;
@@ -24,7 +25,7 @@ class Data extends AbstractHelper
 
     public function __construct(
         Context $context,
-        \Magento\Customer\Model\Session\Proxy $customerSession,
+        CustomerSessionProxy $customerSession,
         GroupRepositoryInterface $groupRepository
     ) {
         $this->customerSession = $customerSession;

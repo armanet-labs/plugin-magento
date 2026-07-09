@@ -2,6 +2,7 @@
 
 namespace Armanet\Integration\Block\CheckoutSuccess;
 
+use Magento\Checkout\Model\Session\Proxy as CheckoutSessionProxy;
 use Magento\Framework\View\Element\Template;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
@@ -14,7 +15,7 @@ class Index extends Template
 
     public function __construct(
         Template\Context $context,
-        \Magento\Checkout\Model\Session\Proxy $checkoutSession,
+        CheckoutSessionProxy $checkoutSession,
         OrderCollectionFactory $orderCollectionFactory,
         array $data = []
     ) {

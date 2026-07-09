@@ -2,6 +2,7 @@
 
 namespace Armanet\Integration\Block;
 
+use Magento\Customer\Model\Session\Proxy as CustomerSessionProxy;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\View\Element\Template;
 
@@ -12,7 +13,7 @@ class UserEvents extends Template
 
     public function __construct(
         Template\Context $context,
-        \Magento\Customer\Model\Session\Proxy $customerSession,
+        CustomerSessionProxy $customerSession,
         CacheInterface $cache,
         array $data = []
     ) {
