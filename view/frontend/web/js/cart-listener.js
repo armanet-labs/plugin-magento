@@ -110,7 +110,7 @@ define([
       var payload = {
         productId: item.product_id,
         sku: item.product_sku,
-        upc: item.upc || '',
+        upc: item.upc || null,
         price: item.product_price_value,
         quantity: item.qty,
       };
