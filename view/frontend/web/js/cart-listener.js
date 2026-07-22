@@ -107,12 +107,31 @@ define([
     }
 
     function sendEvent(eventName, item) {
-      var payload = {
-        productId: item.product_id,
+      var itemData = {
+        itemId: item.product_id,
+        itemName: item.product_name,
         sku: item.product_sku,
         upc: item.upc || null,
         price: item.product_price_value,
         quantity: item.qty,
+      };
+
+      if (item.variation_id) {
+        itemData.variationId = item.variation_id;
+      }
+
+      var customer = customerData.get('storefront_customer')() || {};
+
+      var payload = {
+        items: [itemData],
+        customer: {
+          id: customer.id || 0,
+          country: customer.country || '',
+          city: customer.city || '',
+          state: customer.state || '',
+          postcode: customer.postcode || '',
+          groups: customer.groups || [],
+        },
       };
 
       if (debug) {

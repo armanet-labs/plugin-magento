@@ -118,4 +118,49 @@ class CartItemDataTest extends TestCase
 
         $this->assertSame('987654321098', $result['upc']);
     }
+
+    public function testDoesNotAddVariationIdWhenItemHasNoChildren()
+    {
+        $productMock = $this->getMockBuilder(Product::class)->disableOriginalConstructor()->getMock();
+        $productMock->method('getId')->willReturn(5);
+        $productMock->method('getStoreId')->willReturn(1);
+
+        $itemMock = $this->createMock(QuoteItem::class);
+        $itemMock->method('getProduct')->willReturn($productMock);
+        $itemMock->method('getChildren')->willReturn([]);
+
+        $this->productResourceMock->method('getAttributeRawValue')->willReturn('012345678901');
+
+        $result = $this->plugin->afterGetItemData(
+            $this->createMock(AbstractItem::class),
+            [],
+            $itemMock
+        );
+
+        $this->assertArrayNotHasKey('variation_id', $result);
+    }
+
+    public function testAddsVariationIdFromFirstChildItem()
+    {
+        $productMock = $this->getMockBuilder(Product::class)->disableOriginalConstructor()->getMock();
+        $productMock->method('getId')->willReturn(5);
+        $productMock->method('getStoreId')->willReturn(1);
+
+        $childItemMock = $this->createMock(QuoteItem::class);
+        $childItemMock->method('getProductId')->willReturn(12);
+
+        $itemMock = $this->createMock(QuoteItem::class);
+        $itemMock->method('getProduct')->willReturn($productMock);
+        $itemMock->method('getChildren')->willReturn([$childItemMock]);
+
+        $this->productResourceMock->method('getAttributeRawValue')->willReturn('012345678901');
+
+        $result = $this->plugin->afterGetItemData(
+            $this->createMock(AbstractItem::class),
+            [],
+            $itemMock
+        );
+
+        $this->assertSame(12, $result['variation_id']);
+    }
 }

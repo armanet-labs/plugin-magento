@@ -10,7 +10,6 @@
         <enable_registration_event>1</enable_registration_event>
         <debug_mode>0</debug_mode>
         <upc_attribute>upc</upc_attribute>
-        <excluded_customer_groups></excluded_customer_groups>
       </settings>
     </armanet>
   </default>

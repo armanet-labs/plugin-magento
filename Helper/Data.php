@@ -2,8 +2,9 @@
 
 namespace Armanet\Integration\Helper;
 
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Customer\Api\Data\AddressInterface;
 use Magento\Customer\Api\GroupRepositoryInterface;
-use Magento\Customer\Model\Session\Proxy as CustomerSessionProxy;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\ScopeInterface;
@@ -14,22 +15,20 @@ class Data extends AbstractHelper
     const CONFIG_PATH_ENABLE_TRACKING = 'armanet/settings/enable_tracking';
     const CONFIG_PATH_ENABLE_FEED = 'armanet/settings/enable_feed';
     const CONFIG_PATH_DEBUG_MODE = 'armanet/settings/debug_mode';
-    const CONFIG_PATH_EXCLUDED_GROUPS = 'armanet/settings/excluded_customer_groups';
     const CONFIG_PATH_ENABLE_LOGIN_EVENT = 'armanet/settings/enable_login_event';
     const CONFIG_PATH_ENABLE_REGISTRATION_EVENT = 'armanet/settings/enable_registration_event';
     const CONFIG_PATH_UPC_ATTRIBUTE = 'armanet/settings/upc_attribute';
 
-    protected $customerSession;
     protected $groupRepository;
-    private $isExcluded = null;
+    protected $addressRepository;
 
     public function __construct(
         Context $context,
-        CustomerSessionProxy $customerSession,
-        GroupRepositoryInterface $groupRepository
+        GroupRepositoryInterface $groupRepository,
+        AddressRepositoryInterface $addressRepository
     ) {
-        $this->customerSession = $customerSession;
         $this->groupRepository = $groupRepository;
+        $this->addressRepository = $addressRepository;
         parent::__construct($context);
     }
 
@@ -89,36 +88,29 @@ class Data extends AbstractHelper
         ) ?: 'upc');
     }
 
-    public function getExcludedCustomerGroups(): array
+    public function getGroupNames(?int $groupId): array
     {
-        $value = $this->scopeConfig->getValue(
-            self::CONFIG_PATH_EXCLUDED_GROUPS,
-            ScopeInterface::SCOPE_STORE,
-        );
-        return $value ? explode(',', $value) : [];
-    }
-
-    public function isCurrentUserExcluded(): bool
-    {
-        if ($this->isExcluded !== null) {
-            return $this->isExcluded;
-        }
-
-        $excludedGroups = $this->getExcludedCustomerGroups();
-        if (empty($excludedGroups)) {
-            $this->isExcluded = false;
-            return false;
+        if ($groupId === null) {
+            return [];
         }
 
         try {
-            $group = $this->groupRepository->getById($this->customerSession->getCustomerGroupId());
-            $groupName = $group->getCode();
+            return [$this->groupRepository->getById($groupId)->getCode()];
         } catch (\Exception $e) {
-            $this->isExcluded = false;
-            return false;
+            return [];
+        }
+    }
+
+    public function getBillingAddress(?int $addressId): ?AddressInterface
+    {
+        if (!$addressId) {
+            return null;
         }
 
-        $this->isExcluded = in_array(trim($groupName), array_map('trim', $excludedGroups), true);
-        return $this->isExcluded;
+        try {
+            return $this->addressRepository->getById($addressId);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

@@ -4,7 +4,7 @@
 
 $helper = $this->helper(\Armanet\Integration\Helper\Data::class);
 
-if ($helper->isTrackingEnabled() && !$helper->isCurrentUserExcluded()) {
+if ($helper->isTrackingEnabled()) {
     $upcAttr = $helper->getUpcAttribute();
     $items = [];
     foreach ($block->getItems() as $item) {

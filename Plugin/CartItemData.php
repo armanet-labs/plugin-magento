@@ -33,6 +33,13 @@ class CartItemData
             $product->getStoreId()
         );
         $result['upc'] = is_string($upc) ? $upc : '';
+
+        $children = $item->getChildren();
+        if ($children && count($children) > 0) {
+            $firstChild = reset($children);
+            $result['variation_id'] = $firstChild->getProductId();
+        }
+
         return $result;
     }
 }

@@ -4,7 +4,6 @@ namespace Armanet\Integration\Test\Unit\Observer;
 
 use Armanet\Integration\Helper\Data as ConfigHelper;
 use Armanet\Integration\Observer\CustomerLogin;
-use Magento\Customer\Api\AddressRepositoryInterface;
 use Magento\Customer\Api\Data\AddressInterface;
 use Magento\Customer\Api\Data\CustomerInterface;
 use Magento\Customer\Api\Data\RegionInterface;
@@ -20,9 +19,6 @@ class CustomerLoginTest extends TestCase
     /** @var CacheInterface&\PHPUnit\Framework\MockObject\MockObject */
     private $cacheMock;
 
-    /** @var AddressRepositoryInterface&\PHPUnit\Framework\MockObject\MockObject */
-    private $addressRepositoryMock;
-
     /** @var CustomerLogin */
     private $observer;
 
@@ -30,29 +26,16 @@ class CustomerLoginTest extends TestCase
     {
         $this->helperMock = $this->createMock(ConfigHelper::class);
         $this->cacheMock = $this->createMock(CacheInterface::class);
-        $this->addressRepositoryMock = $this->createMock(AddressRepositoryInterface::class);
 
         $this->observer = new CustomerLogin(
             $this->helperMock,
             $this->cacheMock,
-            $this->addressRepositoryMock,
         );
     }
 
     public function testDoesNothingWhenLoginEventIsDisabled()
     {
         $this->helperMock->method('isLoginEventEnabled')->willReturn(false);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(false);
-
-        $this->cacheMock->expects($this->never())->method('save');
-
-        $this->observer->execute($this->createObserverWithCustomer(42));
-    }
-
-    public function testDoesNothingWhenUserIsExcluded()
-    {
-        $this->helperMock->method('isLoginEventEnabled')->willReturn(true);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(true);
 
         $this->cacheMock->expects($this->never())->method('save');
 
@@ -62,7 +45,7 @@ class CustomerLoginTest extends TestCase
     public function testQueuesLoginEventForCustomer()
     {
         $this->helperMock->method('isLoginEventEnabled')->willReturn(true);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(false);
+        $this->helperMock->method('getGroupNames')->with(4)->willReturn(['General']);
 
         $this->cacheMock->method('load')->willReturn(false);
 
@@ -73,7 +56,8 @@ class CustomerLoginTest extends TestCase
                     $events = json_decode($json, true);
                     return count($events) === 1
                         && $events[0]['name'] === 'login'
-                        && $events[0]['payload']['userId'] === 42;
+                        && $events[0]['payload']['customer']['id'] === 42
+                        && $events[0]['payload']['customer']['groups'] === ['General'];
                 }),
                 'armanet_user_events_42',
                 [],
@@ -86,9 +70,8 @@ class CustomerLoginTest extends TestCase
     public function testDoesNotQueueDuplicateLoginEvent()
     {
         $this->helperMock->method('isLoginEventEnabled')->willReturn(true);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(false);
 
-        $existing = json_encode([['name' => 'login', 'payload' => ['userId' => 42]]]);
+        $existing = json_encode([['name' => 'login', 'payload' => ['customer' => ['id' => 42]]]]);
         $this->cacheMock->method('load')->willReturn($existing);
 
         $this->cacheMock->expects($this->never())->method('save');
@@ -99,7 +82,7 @@ class CustomerLoginTest extends TestCase
     public function testIncludesBillingAddressInPayloadWhenAvailable()
     {
         $this->helperMock->method('isLoginEventEnabled')->willReturn(true);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(false);
+        $this->helperMock->method('getGroupNames')->willReturn([]);
         $this->cacheMock->method('load')->willReturn(false);
 
         $regionMock = $this->createMock(RegionInterface::class);
@@ -109,17 +92,19 @@ class CustomerLoginTest extends TestCase
         $addressMock->method('getCity')->willReturn('Los Angeles');
         $addressMock->method('getRegion')->willReturn($regionMock);
         $addressMock->method('getCountryId')->willReturn('US');
+        $addressMock->method('getPostcode')->willReturn('90001');
 
-        $this->addressRepositoryMock->method('getById')->with(99)->willReturn($addressMock);
+        $this->helperMock->method('getBillingAddress')->with(99)->willReturn($addressMock);
 
         $this->cacheMock->expects($this->once())
             ->method('save')
             ->with(
                 $this->callback(function ($json) {
-                    $payload = json_decode($json, true)[0]['payload'];
-                    return $payload['billingCity'] === 'Los Angeles'
-                        && $payload['billingState'] === 'CA'
-                        && $payload['billingCountry'] === 'US';
+                    $customer = json_decode($json, true)[0]['payload']['customer'];
+                    return $customer['city'] === 'Los Angeles'
+                        && $customer['state'] === 'CA'
+                        && $customer['country'] === 'US'
+                        && $customer['postcode'] === '90001';
                 }),
                 $this->anything(),
                 $this->anything(),
@@ -129,20 +114,21 @@ class CustomerLoginTest extends TestCase
         $this->observer->execute($this->createObserverWithCustomer(42, 99));
     }
 
-    public function testPayloadHasNullAddressFieldsWhenNoBillingAddress()
+    public function testPayloadHasEmptyAddressFieldsWhenNoBillingAddress()
     {
         $this->helperMock->method('isLoginEventEnabled')->willReturn(true);
-        $this->helperMock->method('isCurrentUserExcluded')->willReturn(false);
+        $this->helperMock->method('getGroupNames')->willReturn([]);
         $this->cacheMock->method('load')->willReturn(false);
 
         $this->cacheMock->expects($this->once())
             ->method('save')
             ->with(
                 $this->callback(function ($json) {
-                    $payload = json_decode($json, true)[0]['payload'];
-                    return $payload['billingCity'] === null
-                        && $payload['billingState'] === null
-                        && $payload['billingCountry'] === null;
+                    $customer = json_decode($json, true)[0]['payload']['customer'];
+                    return $customer['city'] === ''
+                        && $customer['state'] === ''
+                        && $customer['country'] === ''
+                        && $customer['postcode'] === '';
                 }),
                 $this->anything(),
                 $this->anything(),
@@ -158,6 +144,7 @@ class CustomerLoginTest extends TestCase
         $customerMock->method('getId')->willReturn($customerId);
         $customerMock->method('getCreatedAt')->willReturn('2024-01-01 00:00:00');
         $customerMock->method('getDefaultBilling')->willReturn($billingAddressId);
+        $customerMock->method('getGroupId')->willReturn(4);
 
         $event = new \Magento\Framework\Event(['customer' => $customerMock]);
 

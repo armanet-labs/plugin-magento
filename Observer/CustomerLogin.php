@@ -3,7 +3,6 @@
 namespace Armanet\Integration\Observer;
 
 use Armanet\Integration\Helper\Data as ConfigHelper;
-use Magento\Customer\Api\AddressRepositoryInterface;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -12,48 +11,36 @@ class CustomerLogin implements ObserverInterface
 {
     protected $helper;
     protected $cache;
-    protected $addressRepository;
 
     public function __construct(
         ConfigHelper $helper,
-        CacheInterface $cache,
-        AddressRepositoryInterface $addressRepository
+        CacheInterface $cache
     ) {
         $this->helper = $helper;
         $this->cache = $cache;
-        $this->addressRepository = $addressRepository;
     }
 
     public function execute(Observer $observer)
     {
-        if (!$this->helper->isLoginEventEnabled() || $this->helper->isCurrentUserExcluded()) {
+        if (!$this->helper->isLoginEventEnabled()) {
             return;
         }
 
         $customer = $observer->getEvent()->getCustomer();
+        $address = $this->helper->getBillingAddress($customer->getDefaultBilling());
+        $region = $address ? $address->getRegion() : null;
 
-        $payload = [
-            'userId'         => $customer->getId(),
+        $customerData = [
+            'id'             => $customer->getId(),
             'accountCreated' => $customer->getCreatedAt(),
-            'billingCity'    => null,
-            'billingState'   => null,
-            'billingCountry' => null,
+            'country'        => $address ? $address->getCountryId() : '',
+            'city'           => $address ? $address->getCity() : '',
+            'state'          => $region ? $region->getRegionCode() : '',
+            'postcode'       => $address ? $address->getPostcode() : '',
+            'groups'         => $this->helper->getGroupNames($customer->getGroupId()),
         ];
 
-        $billingAddressId = $customer->getDefaultBilling();
-        if ($billingAddressId) {
-            try {
-                $address = $this->addressRepository->getById($billingAddressId);
-                $region = $address->getRegion();
-                $payload['billingCity']    = $address->getCity();
-                $payload['billingState']   = $region ? $region->getRegionCode() : null;
-                $payload['billingCountry'] = $address->getCountryId();
-            } catch (\Exception $e) {
-                // address not found or inaccessible — proceed without address data
-            }
-        }
-
-        $this->queueEvent((int) $customer->getId(), 'login', $payload);
+        $this->queueEvent((int) $customer->getId(), 'login', ['customer' => $customerData]);
     }
 
     private function queueEvent(int $customerId, string $name, array $payload)

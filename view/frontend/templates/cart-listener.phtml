@@ -3,7 +3,7 @@
 
 $helper = $this->helper(\Armanet\Integration\Helper\Data::class);
 
-if ($helper->isTrackingEnabled() && !$helper->isCurrentUserExcluded()) {
+if ($helper->isTrackingEnabled()) {
     $debug = $helper->isDebugEnabled() ? 'true' : 'false';
 
     $scriptContent = "

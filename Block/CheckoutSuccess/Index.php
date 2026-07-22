@@ -2,6 +2,7 @@
 
 namespace Armanet\Integration\Block\CheckoutSuccess;
 
+use Armanet\Integration\Helper\Data as ConfigHelper;
 use Magento\Checkout\Model\Session\Proxy as CheckoutSessionProxy;
 use Magento\Framework\View\Element\Template;
 use Magento\Sales\Model\Order;
@@ -12,15 +13,18 @@ class Index extends Template
     protected $checkoutSession;
     protected $order;
     protected $orderCollectionFactory;
+    protected $configHelper;
 
     public function __construct(
         Template\Context $context,
         CheckoutSessionProxy $checkoutSession,
         OrderCollectionFactory $orderCollectionFactory,
+        ConfigHelper $configHelper,
         array $data = []
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->orderCollectionFactory = $orderCollectionFactory;
+        $this->configHelper = $configHelper;
         parent::__construct($context, $data);
     }
 
@@ -96,13 +100,14 @@ class Index extends Template
         }
 
         $data = [
-            'id' => $order->getCustomerId(),
+            'id' => (int) $order->getCustomerId(),
             'totalOrders' => $priorCount + 1,
-            'country' => $billing ? $billing->getCountryId() : null,
-            'city' => $billing ? $billing->getCity() : null,
-            'state' => $billing ? $billing->getRegionCode() : null,
-            'postcode' => $billing ? $billing->getPostcode() : null,
+            'country' => $billing ? $billing->getCountryId() : '',
+            'city' => $billing ? $billing->getCity() : '',
+            'state' => $billing ? $billing->getRegionCode() : '',
+            'postcode' => $billing ? $billing->getPostcode() : '',
             'daysSinceLastPurchase' => $daysSinceLastPurchase,
+            'groups' => $this->configHelper->getGroupNames($order->getCustomerGroupId()),
         ];
 
         if ($priorCount === 0) {

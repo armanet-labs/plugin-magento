@@ -3,6 +3,10 @@
 namespace Armanet\Integration\Test\Unit\Helper;
 
 use Armanet\Integration\Helper\Data;
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Customer\Api\Data\AddressInterface;
+use Magento\Customer\Api\Data\GroupInterface;
+use Magento\Customer\Api\GroupRepositoryInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Store\Model\ScopeInterface;
@@ -21,6 +25,16 @@ class DataTest extends TestCase
     private $scopeConfigMock;
 
     /**
+     * @var GroupRepositoryInterface&\PHPUnit\Framework\MockObject\MockObject
+     */
+    private $groupRepositoryMock;
+
+    /**
+     * @var AddressRepositoryInterface&\PHPUnit\Framework\MockObject\MockObject
+     */
+    private $addressRepositoryMock;
+
+    /**
      * Set up test environment
      */
     protected function setUp(): void
@@ -28,9 +42,13 @@ class DataTest extends TestCase
         $objectManager = new ObjectManager($this);
 
         $this->scopeConfigMock = $this->createMock(ScopeConfigInterface::class);
+        $this->groupRepositoryMock = $this->createMock(GroupRepositoryInterface::class);
+        $this->addressRepositoryMock = $this->createMock(AddressRepositoryInterface::class);
 
         $this->helper = $objectManager->getObject(Data::class, [
-            'scopeConfig' => $this->scopeConfigMock
+            'scopeConfig' => $this->scopeConfigMock,
+            'groupRepository' => $this->groupRepositoryMock,
+            'addressRepository' => $this->addressRepositoryMock,
         ]);
     }
 
@@ -125,5 +143,58 @@ class DataTest extends TestCase
             ->willReturn(null);
 
         $this->assertSame('upc', $this->helper->getUpcAttribute());
+    }
+
+    public function testGetGroupNamesReturnsEmptyArrayWhenGroupIdIsNull()
+    {
+        $this->groupRepositoryMock->expects($this->never())->method('getById');
+
+        $this->assertSame([], $this->helper->getGroupNames(null));
+    }
+
+    public function testGetGroupNamesReturnsResolvedGroupCode()
+    {
+        $groupMock = $this->createMock(GroupInterface::class);
+        $groupMock->method('getCode')->willReturn('Wholesale');
+
+        $this->groupRepositoryMock->expects($this->once())
+            ->method('getById')
+            ->with(3)
+            ->willReturn($groupMock);
+
+        $this->assertSame(['Wholesale'], $this->helper->getGroupNames(3));
+    }
+
+    public function testGetGroupNamesReturnsEmptyArrayWhenGroupCannotBeResolved()
+    {
+        $this->groupRepositoryMock->method('getById')->willThrowException(new \Exception('not found'));
+
+        $this->assertSame([], $this->helper->getGroupNames(99));
+    }
+
+    public function testGetBillingAddressReturnsNullWhenAddressIdIsEmpty()
+    {
+        $this->addressRepositoryMock->expects($this->never())->method('getById');
+
+        $this->assertNull($this->helper->getBillingAddress(null));
+    }
+
+    public function testGetBillingAddressReturnsResolvedAddress()
+    {
+        $addressMock = $this->createMock(AddressInterface::class);
+
+        $this->addressRepositoryMock->expects($this->once())
+            ->method('getById')
+            ->with(99)
+            ->willReturn($addressMock);
+
+        $this->assertSame($addressMock, $this->helper->getBillingAddress(99));
+    }
+
+    public function testGetBillingAddressReturnsNullWhenAddressCannotBeResolved()
+    {
+        $this->addressRepositoryMock->method('getById')->willThrowException(new \Exception('not found'));
+
+        $this->assertNull($this->helper->getBillingAddress(99));
     }
 }
