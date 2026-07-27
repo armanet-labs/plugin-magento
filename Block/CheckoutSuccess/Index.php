@@ -105,7 +105,7 @@ class Index extends Template
             'country' => $billing ? $billing->getCountryId() : '',
             'city' => $billing ? $billing->getCity() : '',
             'state' => $billing ? $billing->getRegionCode() : '',
-            'postcode' => $billing ? $billing->getPostcode() : '',
+            'zip' => $billing ? $billing->getPostcode() : '',
             'daysSinceLastPurchase' => $daysSinceLastPurchase,
             'groups' => $this->configHelper->getGroupNames($order->getCustomerGroupId()),
         ];

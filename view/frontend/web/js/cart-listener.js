@@ -129,7 +129,7 @@ define([
           country: customer.country || '',
           city: customer.city || '',
           state: customer.state || '',
-          postcode: customer.postcode || '',
+          zip: customer.zip || '',
           groups: customer.groups || [],
         },
       };

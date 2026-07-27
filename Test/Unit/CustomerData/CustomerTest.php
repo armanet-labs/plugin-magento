@@ -47,7 +47,7 @@ class CustomerTest extends TestCase
         $this->assertSame('', $data['country']);
         $this->assertSame('', $data['city']);
         $this->assertSame('', $data['state']);
-        $this->assertSame('', $data['postcode']);
+        $this->assertSame('', $data['zip']);
         $this->assertSame(['NOT LOGGED IN'], $data['groups']);
     }
 
@@ -79,7 +79,7 @@ class CustomerTest extends TestCase
         $this->assertSame('US', $data['country']);
         $this->assertSame('Los Angeles', $data['city']);
         $this->assertSame('CA', $data['state']);
-        $this->assertSame('90001', $data['postcode']);
+        $this->assertSame('90001', $data['zip']);
         $this->assertSame(['Wholesale'], $data['groups']);
     }
 
@@ -101,6 +101,6 @@ class CustomerTest extends TestCase
         $this->assertSame('', $data['country']);
         $this->assertSame('', $data['city']);
         $this->assertSame('', $data['state']);
-        $this->assertSame('', $data['postcode']);
+        $this->assertSame('', $data['zip']);
     }
 }

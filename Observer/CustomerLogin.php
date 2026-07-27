@@ -32,11 +32,10 @@ class CustomerLogin implements ObserverInterface
 
         $customerData = [
             'id'             => $customer->getId(),
-            'accountCreated' => $customer->getCreatedAt(),
             'country'        => $address ? $address->getCountryId() : '',
             'city'           => $address ? $address->getCity() : '',
             'state'          => $region ? $region->getRegionCode() : '',
-            'postcode'       => $address ? $address->getPostcode() : '',
+            'zip'            => $address ? $address->getPostcode() : '',
             'groups'         => $this->helper->getGroupNames($customer->getGroupId()),
         ];
 

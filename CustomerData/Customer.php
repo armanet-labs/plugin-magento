@@ -32,7 +32,7 @@ class Customer implements SectionSourceInterface
             'country' => $address ? (string) $address->getCountryId() : '',
             'city' => $address ? (string) $address->getCity() : '',
             'state' => $region ? (string) $region->getRegionCode() : '',
-            'postcode' => $address ? (string) $address->getPostcode() : '',
+            'zip' => $address ? (string) $address->getPostcode() : '',
             'groups' => $this->configHelper->getGroupNames($this->customerSession->getCustomerGroupId()),
         ];
     }

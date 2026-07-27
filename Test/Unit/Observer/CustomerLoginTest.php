@@ -104,7 +104,7 @@ class CustomerLoginTest extends TestCase
                     return $customer['city'] === 'Los Angeles'
                         && $customer['state'] === 'CA'
                         && $customer['country'] === 'US'
-                        && $customer['postcode'] === '90001';
+                        && $customer['zip'] === '90001';
                 }),
                 $this->anything(),
                 $this->anything(),
@@ -128,7 +128,7 @@ class CustomerLoginTest extends TestCase
                     return $customer['city'] === ''
                         && $customer['state'] === ''
                         && $customer['country'] === ''
-                        && $customer['postcode'] === '';
+                        && $customer['zip'] === '';
                 }),
                 $this->anything(),
                 $this->anything(),
@@ -142,7 +142,6 @@ class CustomerLoginTest extends TestCase
     {
         $customerMock = $this->createMock(CustomerInterface::class);
         $customerMock->method('getId')->willReturn($customerId);
-        $customerMock->method('getCreatedAt')->willReturn('2024-01-01 00:00:00');
         $customerMock->method('getDefaultBilling')->willReturn($billingAddressId);
         $customerMock->method('getGroupId')->willReturn(4);
 
