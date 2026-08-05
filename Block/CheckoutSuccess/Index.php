@@ -38,7 +38,7 @@ class Index extends Template
 
     public function getOrderId(): string
     {
-        return $this->getOrder()->getIncrementId();
+        return (string) $this->getOrder()->getIncrementId();
     }
 
     public function getItems(): array
@@ -58,7 +58,7 @@ class Index extends Template
 
     public function getCurrencyCode(): string
     {
-        return $this->getOrder()->getOrderCurrencyCode();
+        return (string) $this->getOrder()->getOrderCurrencyCode();
     }
 
     public function getDiscountAmount(): float

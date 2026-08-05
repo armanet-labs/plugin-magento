@@ -18,8 +18,12 @@ class CartItemData
         $this->productResource = $productResource;
     }
 
-    public function afterGetItemData(AbstractItem $subject, array $result, QuoteItem $item): array
+    public function afterGetItemData(AbstractItem $subject, $result, QuoteItem $item)
     {
+        if (!is_array($result)) {
+            return $result;
+        }
+
         $upcAttr = $this->configHelper->getUpcAttribute();
         $product = $item->getProduct();
         if (!$product) {
