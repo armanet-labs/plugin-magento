@@ -1,15 +1,13 @@
-define('checkout_success', [
-  'jquery',
-], function($) {
+define([], function() {
   'use strict';
 
-  return function(data) {
-    sendEventPurchased(data);
+  return function(data, debug) {
+    if (debug) {
+      console.log('[Armanet] sending event: purchased', data);
+    }
 
-    function sendEventPurchased(payload) {
-      if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.sendEvent === 'function') {
-        Armanet.sendEvent('purchased', payload);
-      }
+    if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.sendEvent === 'function') {
+      Armanet.sendEvent('purchased', data);
     }
   };
 });

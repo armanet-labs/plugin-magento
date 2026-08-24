@@ -6,6 +6,10 @@
         <api_key></api_key>
         <enable_tracking>1</enable_tracking>
         <enable_feed>1</enable_feed>
+        <enable_login_event>1</enable_login_event>
+        <enable_registration_event>1</enable_registration_event>
+        <debug_mode>0</debug_mode>
+        <upc_attribute>upc</upc_attribute>
       </settings>
     </armanet>
   </default>

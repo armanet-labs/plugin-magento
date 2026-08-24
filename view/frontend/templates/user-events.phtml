@@ -1,0 +1,32 @@
+<?php
+/** @var \Armanet\Integration\Block\UserEvents $block */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+
+$helper = $this->helper(\Armanet\Integration\Helper\Data::class);
+
+if ($helper->isTrackingEnabled()) {
+    $events = $block->getAndClearEvents();
+
+    if (!empty($events)) {
+        $debug = $helper->isDebugEnabled() ? 'true' : 'false';
+        $eventsJson = json_encode($events, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+
+        $scriptContent = "
+            require(['jquery'], function(\$) {
+                \$(document).ready(function() {
+                    var events = {$eventsJson};
+                    events.forEach(function(e) {
+                        if ({$debug}) {
+                            console.log('[Armanet] sending event:', e.name, e.payload);
+                        }
+                        if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.sendEvent === 'function') {
+                            Armanet.sendEvent(e.name, e.payload);
+                        }
+                    });
+                });
+            });
+        ";
+
+        echo $secureRenderer->renderTag('script', [], $scriptContent, false);
+    }
+}

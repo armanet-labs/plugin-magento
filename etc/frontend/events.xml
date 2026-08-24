@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="customer_login">
+        <observer name="armanet_customer_login" instance="Armanet\Integration\Observer\CustomerLogin"/>
+    </event>
+    <event name="customer_register_success">
+        <observer name="armanet_customer_register_success" instance="Armanet\Integration\Observer\CustomerRegisterSuccess"/>
+    </event>
+</config>
